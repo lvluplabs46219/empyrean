@@ -3,9 +3,9 @@
 // DAG, dispatches to Raphael (work) or Gabriel (events), routes llm.reason via Metatron.
 import {
   AgentName, Directive, Envelope, ExecutionTree, TaskNode, TaskResult, TaskState,
-  envelope, log,
+  envelope, log, newId,
 } from "../protocol/types.js";
-import { StateStore } from "../state/store.js";
+import { StateStore, DirectiveRecord } from "../state/store.js";
 import { Gabriel } from "../gabriel/messenger.js";
 import { Raphael } from "../raphael/worker.js";
 import * as metatron from "../metatron/gateway.js";
@@ -15,45 +15,141 @@ const LLM_KINDS = new Set(["llm.reason"]);
 const GABRIEL_KINDS = new Set(["notify", "deliver_payload"]);
 
 export class Michael {
-  private store = new StateStore();
+  public store = new StateStore();
   private gabriel = new Gabriel(this.store);
   private raphael = new Raphael();
   private results = new Map<string, TaskResult>();
 
-  /** Entry point for a raw directive: plan with YHWH, then execute the DAG. */
-  async handleDirective(directive: Directive): Promise<{ tree: ExecutionTree; results: TaskResult[] }> {
-    const tree = await yhwh.plan(directive);
-    for (const node of tree.nodes) {
-      this.store.upsertTask({ id: node.id, kind: node.kind, state: "pending", payload: node.payload });
-    }
-    const order = this.topoSort(tree);
-    for (const node of order) await this.execute(node);
-    return { tree, results: [...this.results.values()] };
+  getStore(): StateStore {
+    return this.store;
   }
 
-  private async execute(node: TaskNode): Promise<void> {
-    const depsOk = node.dependsOn.every((d) => this.results.get(d)?.state === "succeeded");
+  getResults(): TaskResult[] {
+    return [...this.results.values()];
+  }
+
+  /** Entry point for a raw directive: plan with YHWH, then execute the DAG. */
+  async handleDirective(directive: Directive): Promise<{ directiveId: string; tree: ExecutionTree; results: TaskResult[] }> {
+    const directiveId = "dir-" + newId().slice(0, 8);
+    const receivedAt = new Date().toISOString();
+
+    // Plan with YHWH
+    const tree = await yhwh.plan(directive);
+
+    // Save initial directive record
+    const directiveRecord: DirectiveRecord = {
+      id: directiveId,
+      text: directive.text,
+      context: directive.context,
+      planned_by: "yhwh",
+      tree,
+      status: "running",
+      received_at: receivedAt,
+    };
+    this.store.saveDirective(directiveRecord);
+
+    // Upsert all pending tasks
+    for (const node of tree.nodes) {
+      let routedTo: AgentName = "raphael";
+      if (LLM_KINDS.has(node.kind)) routedTo = "metatron";
+      else if (GABRIEL_KINDS.has(node.kind)) routedTo = "gabriel";
+
+      this.store.upsertTask({
+        id: node.id,
+        directive_id: directiveId,
+        kind: node.kind,
+        state: "pending",
+        depends_on: node.dependsOn,
+        routed_to: routedTo,
+        payload: node.payload,
+      });
+    }
+
+    // Topo sort and execute DAG
+    const order = this.topoSort(tree);
+    for (const node of order) {
+      await this.execute(node, directiveId);
+    }
+
+    const settledAt = new Date().toISOString();
+    const finalResults = tree.nodes.map((n) => this.results.get(n.id)!).filter(Boolean);
+    const anyFailed = finalResults.some((r) => r.state === "failed");
+
+    directiveRecord.status = anyFailed ? "failed" : "succeeded";
+    directiveRecord.settled_at = settledAt;
+    this.store.saveDirective(directiveRecord);
+
+    this.store.appendEvent(
+      "directive.settled",
+      { directiveId, totalNodes: tree.nodes.length, status: directiveRecord.status, text: directive.text },
+      "michael"
+    );
+
+    return { directiveId, tree, results: finalResults };
+  }
+
+  private async execute(node: TaskNode, directiveId?: string): Promise<void> {
+    const depsOk = node.dependsOn.every((d) => {
+      const state = this.results.get(d)?.state;
+      return state === "succeeded" || state === "fallback";
+    });
+
     if (!depsOk) {
       this.settle(node.id, "failed", undefined, "dependency not satisfied");
       return;
     }
-    this.store.upsertTask({ id: node.id, kind: node.kind, state: "running", payload: node.payload });
+
+    let targetAgent: AgentName = "raphael";
+    if (LLM_KINDS.has(node.kind)) targetAgent = "metatron";
+    else if (GABRIEL_KINDS.has(node.kind)) targetAgent = "gabriel";
+
+    this.store.upsertTask({
+      id: node.id,
+      directive_id: directiveId,
+      kind: node.kind,
+      state: "running",
+      depends_on: node.dependsOn,
+      routed_to: targetAgent,
+      payload: node.payload,
+    });
+
+    // Record outbound envelope
+    this.store.recordEnvelope(
+      envelope("task", "michael", targetAgent, { taskId: node.id, kind: node.kind, payload: node.payload })
+    );
+
     try {
       let output: unknown;
+      let finalState: TaskState = "succeeded";
+
       if (LLM_KINDS.has(node.kind)) {
         const prompt = typeof node.payload === "string"
           ? node.payload
           : JSON.stringify(node.payload);
-        output = await metatron.complete(prompt);
+        const res = await metatron.complete(prompt);
+        output = res;
+        if (res.decision?.tier === "seraphim->yhwh") {
+          finalState = "fallback";
+        }
       } else if (GABRIEL_KINDS.has(node.kind)) {
         output = await this.gabriel.emit({ topic: node.kind, data: { task: node.id, payload: node.payload } });
       } else {
         output = await this.raphael.run(node);
       }
-      this.settle(node.id, "succeeded", output);
+
+      this.settle(node.id, finalState, output);
+
+      // Record inbound reply envelope
+      this.store.recordEnvelope(
+        envelope("task_result", targetAgent, "michael", { taskId: node.id, state: finalState, output })
+      );
     } catch (e) {
       this.settle(node.id, "failed", undefined, String(e));
       await this.gabriel.emit({ topic: "task.failed", data: { task: node.id, error: String(e) } });
+
+      this.store.recordEnvelope(
+        envelope("task_result", targetAgent, "michael", { taskId: node.id, state: "failed", error: String(e) })
+      );
     }
   }
 
@@ -61,7 +157,7 @@ export class Michael {
     const r: TaskResult = { taskId, state, output, error };
     this.results.set(taskId, r);
     this.store.completeTask(taskId, state, output, error);
-    log(state === "succeeded" ? "info" : "error", "michael", "task_settled", { taskId, state, error });
+    log(state === "succeeded" || state === "fallback" ? "info" : "error", "michael", "task_settled", { taskId, state, error });
   }
 
   /** Topological sort (Kahn); cycle => remaining nodes dispatched in listed order. */
@@ -90,19 +186,32 @@ export class Michael {
   /** UDS message handler: routes envelopes by type. */
   async onEnvelope(env: Envelope): Promise<Envelope | null> {
     log("info", "michael", "envelope_received", { type: env.type, from: env.from });
+    this.store.recordEnvelope(env);
+
+    let reply: Envelope | null = null;
+
     switch (env.type) {
       case "directive": {
         const { results } = await this.handleDirective(env.payload as Directive);
-        return envelope("task_result", "michael", env.from, results, env.correlationId);
+        reply = envelope("task_result", "michael", env.from, results, env.correlationId);
+        break;
       }
-      case "task":
-        return this.gabriel.handle(env);
+      case "task": {
+        reply = this.gabriel.handle(env);
+        break;
+      }
       case "query": {
         const me: AgentName = "michael";
-        return envelope("task_result", "michael", env.from, { ok: true, agent: me }, env.correlationId);
+        reply = envelope("task_result", "michael", env.from, { ok: true, agent: me }, env.correlationId);
+        break;
       }
       default:
-        return null;
+        reply = null;
     }
+
+    if (reply) {
+      this.store.recordEnvelope(reply);
+    }
+    return reply;
   }
 }

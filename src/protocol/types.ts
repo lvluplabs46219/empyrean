@@ -1,5 +1,5 @@
-// Shared wire contract for all agents (YHWH, Michael, Gabriel, Raphael, Metatron, Seraphim)
-export type AgentName = "yhwh" | "michael" | "gabriel" | "raphael" | "metatron" | "seraphim";
+// Shared wire contract for all agents (YHWH, Michael, Gabriel, Raphael, Metatron, Seraphim, external)
+export type AgentName = "yhwh" | "michael" | "gabriel" | "raphael" | "metatron" | "seraphim" | "external";
 
 export type TaskKind =
   | "llm.reason"          // YHWH / Metatron
