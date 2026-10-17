@@ -1,6 +1,7 @@
 {
-  "name": "@coc/multi-agent",
-  "version": "0.1.0",
+  "name": "empyrean",
+  "version": "0.2.0",
+  "description": "Multi-agent orchestration kernel: YHWH (planning), Michael (orchestrator), Gabriel (messenger), Raphael (worker), Metatron/Seraphim (gateway & reasoning).",
   "private": true,
   "type": "module",
   "engines": {
@@ -12,12 +13,21 @@
     "lint": "tsc --noEmit",
     "start": "node dist/index.js",
     "worker": "tsx src/cli/worker-cli.ts",
-    "send": "tsx src/cli/send.ts"
+    "send": "tsx src/cli/send.ts",
+    "test": "tsx --test src/**/*.test.ts"
   },
   "dependencies": {},
   "devDependencies": {
     "@types/node": "^22.10.0",
     "tsx": "^4.23.15",
     "typescript": "^5.6.0"
-  }
+  },
+  "keywords": [
+    "multi-agent",
+    "orchestrator",
+    "llm",
+    "dag",
+    "automation"
+  ],
+  "license": "GPL-3.0"
 }
