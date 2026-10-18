@@ -4,216 +4,256 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Empyrean — Multi-Agent Workspace</title>
-  <meta name="description" content="Empyrean multi-agent workspace with channel chat, agent roles, skills, and light/dark mode.">
-  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;600;700&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+  <meta name="description" content="Empyrean workspace: agents, channels, DMs, skills, and runtimes.">
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;600;700&display=swap" rel="stylesheet">
   <style>
     :root {
-      --bg: #fff7fb; --surface: #fde7ff; --text: #281330; --muted: #57414a;
-      --primary: #af0a78; --primary-accent: #e040a0; --online: #10b981;
-      --msg-out: linear-gradient(135deg, #e040a0, #af0a78); --card: #fff;
-      --border: #f8d8ff; --font: 'DM Sans', system-ui, sans-serif;
+      --bg:#fff7fb;--surface:#fde7ff;--text:#281330;--muted:#57414a;--primary:#af0a78;
+      --accent:#e040a0;--card:#fff;--border:#f8d8ff;--out:linear-gradient(135deg,#e040a0,#af0a78);
+      --font:'DM Sans',system-ui,sans-serif;
     }
-    [data-theme="dark"] {
-      --bg: #170a1b; --surface: #2c1536; --text: #feebff; --muted: #e0bfd2;
-      --primary: #ff4db8; --card: #271330; --border: #442154;
-    }
-    * { box-sizing: border-box; margin: 0; padding: 0; }
-    body { font-family: var(--font); background: var(--bg); color: var(--text); height: 100vh; display: flex; }
-    .sidebar { width: 320px; border-right: 1px solid var(--border); background: var(--bg); display: flex; flex-direction: column; }
-    .sidebar-h { padding: 12px 16px; border-bottom: 1px solid var(--border); font-weight: 700; }
-    .cat { padding: 12px 16px 6px; font-size: 11px; text-transform: uppercase; letter-spacing: .08em; color: var(--muted); font-weight: 700; }
-    .chat-item, .agent-item { display: flex; gap: 10px; align-items: center; padding: 10px 14px; margin: 2px 8px; border-radius: 12px; cursor: pointer; }
-    .chat-item:hover, .agent-item:hover, .chat-item.active { background: var(--surface); }
-    .av { width: 40px; height: 40px; border-radius: 999px; display: flex; align-items: center; justify-content: center; color: #fff; font-weight: 700; font-size: 13px; flex-shrink: 0; }
-    .main { flex: 1; display: flex; flex-direction: column; }
-    .header { padding: 12px 16px; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; }
-    .msgs { flex: 1; overflow-y: auto; padding: 16px; display: flex; flex-direction: column; gap: 10px; }
-    .msg { max-width: 70%; padding: 10px 14px; border-radius: 16px; background: var(--card); border: 1px solid var(--border); }
-    .msg.out { align-self: flex-end; background: var(--msg-out); color: #fff; border: none; }
-    .msg .sender { font-size: 12px; font-weight: 700; color: var(--primary); margin-bottom: 4px; }
-    .msg.out .sender { color: rgba(255,255,255,.9); }
-    .composer { padding: 12px 16px; border-top: 1px solid var(--border); display: flex; gap: 8px; }
-    .composer input { flex: 1; border-radius: 999px; border: 1px solid var(--border); padding: 10px 16px; background: var(--surface); color: var(--text); font: inherit; outline: none; }
-    .composer button { border: none; border-radius: 999px; padding: 10px 18px; background: var(--primary); color: #fff; font-weight: 700; cursor: pointer; }
-    .pill { font-size: 11px; padding: 2px 8px; border-radius: 999px; background: var(--surface); color: var(--muted); }
-    .modal-bg { display: none; position: fixed; inset: 0; background: rgba(0,0,0,.4); z-index: 50; align-items: center; justify-content: center; }
-    .modal-bg.open { display: flex; }
-    .modal { background: var(--card); border-radius: 16px; padding: 20px; width: min(440px, 92vw); border: 1px solid var(--border); }
-    .modal h2 { margin-bottom: 12px; font-size: 18px; }
-    .modal label { display: block; font-size: 12px; font-weight: 600; margin: 10px 0 4px; color: var(--muted); }
-    .modal input, .modal textarea, .modal select { width: 100%; padding: 8px 10px; border-radius: 8px; border: 1px solid var(--border); background: var(--surface); color: var(--text); font: inherit; }
-    .modal .actions { margin-top: 16px; display: flex; gap: 8px; justify-content: flex-end; }
-    .status { font-size: 11px; color: var(--muted); }
+    [data-theme=dark]{--bg:#170a1b;--surface:#2c1536;--text:#feebff;--muted:#e0bfd2;--primary:#ff4db8;--card:#271330;--border:#442154}
+    *{box-sizing:border-box;margin:0;padding:0}
+    body{font-family:var(--font);background:var(--bg);color:var(--text);height:100vh;display:flex}
+    .sidebar{width:300px;border-right:1px solid var(--border);display:flex;flex-direction:column}
+    .sidebar-h{padding:14px 16px;font-weight:700;border-bottom:1px solid var(--border)}
+    .cat{padding:12px 16px 6px;font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);font-weight:700}
+    .item{display:flex;gap:10px;align-items:center;padding:10px 14px;margin:2px 8px;border-radius:12px;cursor:pointer}
+    .item:hover,.item.active{background:var(--surface)}
+    .av{width:40px;height:40px;border-radius:999px;display:flex;align-items:center;justify-content:center;color:#fff;font-weight:700;font-size:13px;flex-shrink:0;background-size:cover;background-position:center}
+    .main{flex:1;display:flex;flex-direction:column;min-width:0}
+    .header{padding:12px 16px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center}
+    .msgs{flex:1;overflow:auto;padding:16px;display:flex;flex-direction:column;gap:10px}
+    .msg{max-width:72%;padding:10px 14px;border-radius:16px;background:var(--card);border:1px solid var(--border)}
+    .msg.out{align-self:flex-end;background:var(--out);color:#fff;border:none}
+    .msg .who{font-size:12px;font-weight:700;color:var(--primary);margin-bottom:4px}
+    .composer{padding:12px 16px;border-top:1px solid var(--border);display:flex;gap:8px}
+    .composer input{flex:1;border-radius:999px;border:1px solid var(--border);padding:10px 16px;background:var(--surface);color:var(--text);font:inherit;outline:none}
+    .composer button,.btn{border:none;border-radius:999px;padding:10px 16px;background:var(--primary);color:#fff;font-weight:700;cursor:pointer}
+    .btn.ghost{background:transparent;color:var(--text);border:1px solid var(--border)}
+    .pill{font-size:11px;padding:2px 8px;border-radius:999px;background:var(--surface);color:var(--muted)}
+    .status{font-size:11px;color:var(--muted)}
+    .modal-bg{display:none;position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:50;align-items:center;justify-content:center;padding:16px}
+    .modal-bg.open{display:flex}
+    .modal{background:var(--card);border-radius:16px;padding:20px;width:min(520px,96vw);max-height:90vh;overflow:auto;border:1px solid var(--border)}
+    .modal h2{margin-bottom:8px;font-size:18px}
+    .modal label{display:block;font-size:12px;font-weight:600;margin:12px 0 4px;color:var(--muted)}
+    .modal input,.modal textarea,.modal select{width:100%;padding:8px 10px;border-radius:8px;border:1px solid var(--border);background:var(--surface);color:var(--text);font:inherit}
+    .skills{display:flex;flex-wrap:wrap;gap:6px;margin-top:6px}
+    .skill{font-size:12px;padding:6px 10px;border-radius:999px;border:1px solid var(--border);cursor:pointer;user-select:none}
+    .skill.on{background:var(--primary);color:#fff;border-color:var(--primary)}
+    .actions{margin-top:16px;display:flex;gap:8px;justify-content:flex-end}
+    .hint{font-size:12px;color:var(--muted);margin-top:4px;line-height:1.4}
   </style>
 </head>
 <body>
-  <aside class="sidebar">
-    <div class="sidebar-h">Empyrean</div>
-    <div class="cat">Channels</div>
-    <div class="chat-item active" data-chat="general-swarm" onclick="switchChat(this)">
-      <div class="av" style="background:#af0a78">#</div>
-      <div><div style="font-weight:700">general-swarm</div><div class="status" id="swarmStatus">agents active</div></div>
+<aside class="sidebar">
+  <div class="sidebar-h">Empyrean</div>
+  <div class="cat">Channels</div>
+  <div class="item active" data-chat="general-swarm" onclick="openChannel(this)">
+    <div class="av" style="background:#af0a78">#</div>
+    <div><div style="font-weight:700">general-swarm</div><div class="status" id="swarmStatus">listening · @mention to invoke</div></div>
+  </div>
+  <div class="cat">Agents <span style="float:right;color:var(--primary);cursor:pointer" onclick="openDeploy()">+ Deploy</span></div>
+  <div id="agentList"></div>
+  <div style="margin-top:auto;padding:12px 16px;border-top:1px solid var(--border);font-size:12px;color:var(--muted)">
+    Workspace Admin · <button class="btn ghost" style="padding:4px 10px" onclick="toggleTheme()">Theme</button>
+  </div>
+</aside>
+<main class="main">
+  <div class="header">
+    <div>
+      <div style="font-weight:700" id="chatTitle">#general-swarm</div>
+      <div class="status" id="chatSub">Channel · agents reply only when @mentioned</div>
     </div>
-    <div class="cat">Agents <span style="float:right;cursor:pointer;color:var(--primary)" onclick="openDeploy()">+ Deploy</span></div>
-    <div id="agentList"></div>
-    <div style="margin-top:auto;padding:12px 16px;border-top:1px solid var(--border);font-size:12px;color:var(--muted)">
-      Workspace Admin · <button onclick="toggleTheme()" style="border:none;background:var(--surface);padding:4px 8px;border-radius:8px;cursor:pointer;color:var(--text)">Theme</button>
-    </div>
-  </aside>
-  <main class="main">
-    <div class="header">
-      <div>
-        <div style="font-weight:700" id="chatTitle">#general-swarm</div>
-        <div class="status" id="chatSub">Channel · mention agents with @ to address them</div>
-      </div>
-      <span class="pill" id="healthPill">…</span>
-    </div>
-    <div class="msgs" id="msgs"></div>
-    <div class="composer">
-      <input id="input" placeholder="Message the swarm, or @agent for a direct request…" onkeydown="if(event.key==='Enter')send()" />
-      <button onclick="send()">Send</button>
-    </div>
-  </main>
+    <span class="pill" id="healthPill">…</span>
+  </div>
+  <div class="msgs" id="msgs"></div>
+  <div class="composer">
+    <input id="input" placeholder="Message… use @AgentName in channels" onkeydown="if(event.key==='Enter')send()" />
+    <button onclick="send()">Send</button>
+  </div>
+</main>
 
-  <div class="modal-bg" id="deployModal">
-    <div class="modal">
-      <h2>Deploy Agent</h2>
-      <label>Agent name</label>
-      <input id="depName" placeholder="e.g. Researcher" />
-      <label>Role / description (system prompt)</label>
-      <textarea id="depRole" rows="3" placeholder="1–2 sentences defining the job…"></textarea>
-      <label>AI model</label>
-      <select id="depModel">
-        <option value="hermes3:8b">hermes3:8b (local Ollama)</option>
-        <option value="hermes3:latest">hermes3:latest</option>
-        <option value="custom">Custom / online Hermes</option>
-      </select>
-      <label>Skills pack</label>
-      <input id="depSkills" placeholder="e.g. web, code, notify (comma-separated)" />
-      <div class="actions">
-        <button onclick="closeDeploy()" style="border:1px solid var(--border);background:transparent;padding:8px 14px;border-radius:999px;cursor:pointer;color:var(--text)">Cancel</button>
-        <button onclick="deployAgent()" style="border:none;background:var(--primary);color:#fff;padding:8px 14px;border-radius:999px;cursor:pointer;font-weight:700">Deploy</button>
-      </div>
+<div class="modal-bg" id="deployModal">
+  <div class="modal">
+    <h2>Deploy Agent</h2>
+    <p class="hint">Configure name, role (system prompt), model, skills, and runtime. No third-party product names.</p>
+
+    <label>Agent name</label>
+    <input id="depName" placeholder="Display name in channels" />
+
+    <label>Avatar URL (optional)</label>
+    <input id="depAvatar" placeholder="https://… or leave blank for color initials" />
+
+    <label>Role / description (system prompt)</label>
+    <textarea id="depRole" rows="3" placeholder="1–2 sentences + any constraints (e.g. Keep replies under 200 words)"></textarea>
+
+    <label>AI model</label>
+    <select id="depModel"></select>
+
+    <label>Runtime</label>
+    <select id="depRuntime"></select>
+    <p class="hint" id="runtimeHint"></p>
+
+    <label>Skills pack</label>
+    <p class="hint">Select tools this agent may use. Browse below.</p>
+    <div class="skills" id="skillBox"></div>
+
+    <div class="actions">
+      <button class="btn ghost" onclick="closeDeploy()">Cancel</button>
+      <button class="btn" onclick="deployAgent()">Deploy</button>
     </div>
   </div>
+</div>
 
-  <script>
-    const AUTH = localStorage.getItem('empyrean_token') || 'dev-change-me';
-    let chatId = 'general-swarm';
+<script>
+  const AUTH = localStorage.getItem('empyrean_token') || 'dev-change-me';
+  let chatId = 'general-swarm';
+  let chatKind = 'channel';
+  let selectedSkills = new Set();
+  let skillsCatalog = [];
+  let workspaceAgents = [];
 
-    function headers(json) {
-      const h = {};
-      if (json) h['Content-Type'] = 'application/json';
-      if (AUTH) h['Authorization'] = 'Bearer ' + AUTH;
-      return h;
-    }
+  function headers(json) {
+    const h = {};
+    if (json) h['Content-Type'] = 'application/json';
+    if (AUTH) h.Authorization = 'Bearer ' + AUTH;
+    return h;
+  }
+  function toggleTheme() {
+    const t = document.documentElement.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
+    document.documentElement.setAttribute('data-theme', t);
+  }
+  function escapeHtml(s) {
+    return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  }
 
-    function toggleTheme() {
-      const t = document.documentElement.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
-      document.documentElement.setAttribute('data-theme', t);
-    }
+  async function loadCatalogs() {
+    const [skills, models, runtimes] = await Promise.all([
+      fetch('/api/skills').then(r => r.json()),
+      fetch('/api/models').then(r => r.json()),
+      fetch('/api/runtimes').then(r => r.json()),
+    ]);
+    skillsCatalog = skills;
+    const mb = document.getElementById('depModel');
+    mb.innerHTML = models.map(m => '<option value="'+m.id+'">'+m.label+'</option>').join('');
+    const rb = document.getElementById('depRuntime');
+    rb.innerHTML = runtimes.map(r => '<option value="'+r.id+'">'+r.label+'</option>').join('');
+    rb.onchange = () => {
+      const r = runtimes.find(x => x.id === rb.value);
+      document.getElementById('runtimeHint').textContent = r ? r.description : '';
+    };
+    rb.onchange();
+    const box = document.getElementById('skillBox');
+    box.innerHTML = skills.map(s =>
+      '<span class="skill" data-id="'+s.id+'" title="'+escapeHtml(s.description)+'" onclick="toggleSkill(this)">'+escapeHtml(s.name)+'</span>'
+    ).join('');
+  }
 
-    function switchChat(el) {
-      document.querySelectorAll('.chat-item').forEach(x => x.classList.remove('active'));
-      el.classList.add('active');
-      chatId = el.getAttribute('data-chat');
-      document.getElementById('chatTitle').textContent = '#' + chatId.replace(/^#/, '');
-      document.getElementById('chatSub').textContent = 'Channel · mention agents with @ to address them';
-      loadMessages();
-    }
+  function toggleSkill(el) {
+    const id = el.getAttribute('data-id');
+    if (selectedSkills.has(id)) { selectedSkills.delete(id); el.classList.remove('on'); }
+    else { selectedSkills.add(id); el.classList.add('on'); }
+  }
 
-    async function loadHealth() {
-      try {
-        const r = await fetch('/api/health');
-        const j = await r.json();
-        document.getElementById('healthPill').textContent = j.status + ' · ' + (j.agentsCount || 0) + ' agents';
-        document.getElementById('swarmStatus').textContent = (j.agentsCount || 0) + ' agents active';
-      } catch (e) {
-        document.getElementById('healthPill').textContent = 'offline';
-      }
-    }
+  function openDeploy() {
+    selectedSkills = new Set();
+    document.querySelectorAll('.skill').forEach(s => s.classList.remove('on'));
+    document.getElementById('deployModal').classList.add('open');
+  }
+  function closeDeploy() { document.getElementById('deployModal').classList.remove('open'); }
 
-    async function loadAgents() {
-      try {
-        const r = await fetch('/api/agents');
-        const agents = await r.json();
-        const box = document.getElementById('agentList');
-        box.innerHTML = agents.map(a => {
-          const color = a.id === 'michael' ? '#0284c7' : a.id === 'yhwh' ? '#818cf8' : a.id === 'gabriel' ? '#10b981' : a.id === 'metatron' ? '#a855f7' : '#f59e0b';
-          const initials = (a.display_name || a.id).slice(0, 2).toUpperCase();
-          return '<div class="agent-item" data-chat="' + a.id + '" onclick="openDm(this,\'' + a.id + '\',\'' + (a.display_name || a.id).replace(/'/g, '') + '\')">' +
-            '<div class="av" style="background:' + color + '">' + initials + '</div>' +
-            '<div><div style="font-weight:700;font-size:13px">' + (a.display_name || a.id) + '</div>' +
-            '<div class="status">' + (a.role_title || a.tier || '') + '</div></div></div>';
-        }).join('');
-      } catch (e) {}
-    }
+  async function deployAgent() {
+    const name = document.getElementById('depName').value.trim();
+    const role = document.getElementById('depRole').value.trim();
+    if (!name || !role) { alert('Name and role are required'); return; }
+    const body = {
+      name,
+      role,
+      model: document.getElementById('depModel').value,
+      runtime: document.getElementById('depRuntime').value,
+      skills: [...selectedSkills],
+      avatarUrl: document.getElementById('depAvatar').value.trim() || undefined,
+    };
+    const r = await fetch('/api/workspace-agents', { method: 'POST', headers: headers(true), body: JSON.stringify(body) });
+    if (!r.ok) { alert(await r.text()); return; }
+    closeDeploy();
+    await loadAgents();
+    await loadMessages();
+  }
 
-    function openDm(el, id, name) {
-      document.querySelectorAll('.chat-item,.agent-item').forEach(x => x.classList.remove('active'));
-      el.classList.add('active');
-      chatId = id;
-      document.getElementById('chatTitle').textContent = name;
-      document.getElementById('chatSub').textContent = 'Direct message · every message is a prompt (no @ required)';
-      loadMessages();
-    }
-
-    async function loadMessages() {
-      const r = await fetch('/api/messages?chatId=' + encodeURIComponent(chatId));
-      const msgs = await r.json();
-      const box = document.getElementById('msgs');
-      box.innerHTML = (msgs || []).map(m => {
-        const out = m.isOutgoing ? ' out' : '';
-        const sender = m.isOutgoing ? '' : '<div class="sender">' + (m.senderName || m.senderId) + ' <span class="pill">Agent</span></div>';
-        return '<div class="msg' + out + '">' + sender + '<div>' + escapeHtml(m.text || '') + '</div></div>';
-      }).join('');
-      box.scrollTop = box.scrollHeight;
-    }
-
-    function escapeHtml(s) {
-      return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
-    }
-
-    async function send() {
-      const input = document.getElementById('input');
-      const text = input.value.trim();
-      if (!text) return;
-      input.value = '';
-      await fetch('/api/messages', {
-        method: 'POST',
-        headers: headers(true),
-        body: JSON.stringify({ text, chatId })
-      });
-      await loadMessages();
-      setTimeout(loadMessages, 1200);
-      setTimeout(loadMessages, 2800);
-    }
-
-    function openDeploy() { document.getElementById('deployModal').classList.add('open'); }
-    function closeDeploy() { document.getElementById('deployModal').classList.remove('open'); }
-
-    async function deployAgent() {
-      const name = document.getElementById('depName').value.trim() || 'Custom Agent';
-      const role = document.getElementById('depRole').value.trim() || 'Generalist agent';
-      const model = document.getElementById('depModel').value;
-      const skills = document.getElementById('depSkills').value.trim();
-      await fetch('/api/messages', {
-        method: 'POST',
-        headers: headers(true),
-        body: JSON.stringify({
-          chatId: 'general-swarm',
-          text: 'Deploy agent "' + name + '". Role: ' + role + '. Model: ' + model + '. Skills: ' + (skills || 'none') + '.'
-        })
-      });
-      closeDeploy();
-      setTimeout(loadMessages, 800);
-      setTimeout(loadAgents, 1000);
-    }
-
-    loadHealth();
-    loadAgents();
+  function openChannel(el) {
+    document.querySelectorAll('.item').forEach(x => x.classList.remove('active'));
+    el.classList.add('active');
+    chatId = el.getAttribute('data-chat');
+    chatKind = 'channel';
+    document.getElementById('chatTitle').textContent = '#' + chatId;
+    document.getElementById('chatSub').textContent = 'Channel · agents reply only when @mentioned';
     loadMessages();
-    setInterval(() => { loadHealth(); loadMessages(); }, 4000);
-  </script>
+  }
+
+  function openDm(el, id, name) {
+    document.querySelectorAll('.item').forEach(x => x.classList.remove('active'));
+    el.classList.add('active');
+    chatId = id;
+    chatKind = 'dm';
+    document.getElementById('chatTitle').textContent = name;
+    document.getElementById('chatSub').textContent = 'Direct message · every message is a prompt (no @ required)';
+    loadMessages();
+  }
+
+  async function loadHealth() {
+    try {
+      const j = await fetch('/api/health').then(r => r.json());
+      document.getElementById('healthPill').textContent = j.status + ' · ' + (j.agentsCount||0) + ' agents';
+      document.getElementById('swarmStatus').textContent = (j.workspaceAgents||0) + ' workspace agents · @ to invoke';
+    } catch { document.getElementById('healthPill').textContent = 'offline'; }
+  }
+
+  async function loadAgents() {
+    const data = await fetch('/api/agents').then(r => r.json());
+    workspaceAgents = data.workspace || [];
+    const box = document.getElementById('agentList');
+    box.innerHTML = workspaceAgents.map(a => {
+      const style = a.avatarUrl
+        ? 'background-image:url('+JSON.stringify(a.avatarUrl)+')'
+        : 'background:'+a.avatarColor;
+      const initials = (a.name||'A').slice(0,2).toUpperCase();
+      return '<div class="item" onclick="openDm(this,\''+a.id+'\',\''+String(a.name).replace(/'/g,'')+'\')">' +
+        '<div class="av" style="'+style+'">'+(a.avatarUrl?'':initials)+'</div>' +
+        '<div><div style="font-weight:700;font-size:13px">'+escapeHtml(a.name)+'</div>' +
+        '<div class="status">'+escapeHtml((a.role||'').slice(0,48))+'</div></div></div>';
+    }).join('') || '<div class="status" style="padding:8px 16px">No workspace agents yet — Deploy one</div>';
+  }
+
+  async function loadMessages() {
+    const msgs = await fetch('/api/messages?chatId='+encodeURIComponent(chatId)).then(r => r.json());
+    const box = document.getElementById('msgs');
+    box.innerHTML = (msgs||[]).map(m => {
+      const out = m.isOutgoing ? ' out' : '';
+      const who = m.isOutgoing ? '' : '<div class="who">'+escapeHtml(m.senderName||m.senderId)+' <span class="pill">Agent</span></div>';
+      return '<div class="msg'+out+'">'+who+'<div>'+escapeHtml(m.text||'')+'</div></div>';
+    }).join('');
+    box.scrollTop = box.scrollHeight;
+  }
+
+  async function send() {
+    const input = document.getElementById('input');
+    const text = input.value.trim();
+    if (!text) return;
+    input.value = '';
+    await fetch('/api/messages', { method:'POST', headers: headers(true), body: JSON.stringify({ text, chatId }) });
+    await loadMessages();
+    setTimeout(loadMessages, 1000);
+    setTimeout(loadMessages, 2500);
+  }
+
+  loadCatalogs();
+  loadHealth();
+  loadAgents();
+  loadMessages();
+  setInterval(() => { loadHealth(); loadMessages(); }, 5000);
+</script>
 </body>
 </html>
