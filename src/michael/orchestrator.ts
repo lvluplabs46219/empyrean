@@ -19,6 +19,7 @@ export class Michael {
   private gabriel = new Gabriel(this.store);
   private raphael = new Raphael();
   private results = new Map<string, TaskResult>();
+  private workers = new Map<string, { name: string; pid?: number; hostname?: string; lastSeen: string }>();
 
   getStore(): StateStore {
     return this.store;
@@ -33,10 +34,8 @@ export class Michael {
     const directiveId = "dir-" + newId().slice(0, 8);
     const receivedAt = new Date().toISOString();
 
-    // Plan with YHWH
     const tree = await yhwh.plan(directive);
 
-    // Save initial directive record
     const directiveRecord: DirectiveRecord = {
       id: directiveId,
       text: directive.text,
@@ -48,7 +47,6 @@ export class Michael {
     };
     this.store.saveDirective(directiveRecord);
 
-    // Upsert all pending tasks
     for (const node of tree.nodes) {
       let routedTo: AgentName = "raphael";
       if (LLM_KINDS.has(node.kind)) routedTo = "metatron";
@@ -65,7 +63,6 @@ export class Michael {
       });
     }
 
-    // Topo sort and execute DAG
     const order = this.topoSort(tree);
     for (const node of order) {
       await this.execute(node, directiveId);
@@ -113,7 +110,6 @@ export class Michael {
       payload: node.payload,
     });
 
-    // Record outbound envelope
     this.store.recordEnvelope(
       envelope("task", "michael", targetAgent, { taskId: node.id, kind: node.kind, payload: node.payload })
     );
@@ -139,7 +135,6 @@ export class Michael {
 
       this.settle(node.id, finalState, output);
 
-      // Record inbound reply envelope
       this.store.recordEnvelope(
         envelope("task_result", targetAgent, "michael", { taskId: node.id, state: finalState, output })
       );
@@ -160,7 +155,6 @@ export class Michael {
     log(state === "succeeded" || state === "fallback" ? "info" : "error", "michael", "task_settled", { taskId, state, error });
   }
 
-  /** Topological sort (Kahn); cycle => remaining nodes dispatched in listed order. */
   private topoSort(tree: ExecutionTree): TaskNode[] {
     const byId = new Map(tree.nodes.map((n) => [n.id, n]));
     const indeg = new Map(tree.nodes.map((n) => [n.id, n.dependsOn.filter((d) => byId.has(d)).length]));
@@ -179,11 +173,10 @@ export class Michael {
         }
       }
     }
-    for (const n of tree.nodes) if (!seen.has(n.id)) out.push(n); // cycle fallback
+    for (const n of tree.nodes) if (!seen.has(n.id)) out.push(n);
     return out;
   }
 
-  /** UDS message handler: routes envelopes by type. */
   async onEnvelope(env: Envelope): Promise<Envelope | null> {
     log("info", "michael", "envelope_received", { type: env.type, from: env.from });
     this.store.recordEnvelope(env);
@@ -201,8 +194,49 @@ export class Michael {
         break;
       }
       case "query": {
-        const me: AgentName = "michael";
-        reply = envelope("task_result", "michael", env.from, { ok: true, agent: me }, env.correlationId);
+        const payload = (env.payload ?? {}) as {
+          action?: string;
+          worker?: string;
+          pid?: number;
+          hostname?: string;
+          register?: string;
+        };
+        const action = payload.action ?? (payload.register ? "register" : "status");
+
+        if (action === "register" || action === "heartbeat") {
+          const name = payload.worker ?? payload.register ?? "worker";
+          this.workers.set(name, {
+            name,
+            pid: payload.pid,
+            hostname: payload.hostname,
+            lastSeen: new Date().toISOString(),
+          });
+          const agent = this.store.getAgent("raphael");
+          if (agent) {
+            agent.last_heartbeat = new Date().toISOString();
+            agent.status = "active";
+          }
+          reply = envelope(
+            "task_result",
+            "michael",
+            env.from,
+            { ok: true, action, worker: name, workers: [...this.workers.values()] },
+            env.correlationId,
+          );
+        } else {
+          reply = envelope(
+            "task_result",
+            "michael",
+            env.from,
+            {
+              ok: true,
+              agent: "michael" as AgentName,
+              workers: [...this.workers.values()],
+              metrics: this.store.getMetrics(),
+            },
+            env.correlationId,
+          );
+        }
         break;
       }
       default:
