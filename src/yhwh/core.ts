@@ -1,16 +1,51 @@
-// YHWH — Core Reasoning Engine (local inference via Ollama / Lemonade).
-// Parses ambiguous intent and outputs structured execution trees.
+// YHWH — Core Reasoning Engine.
+// Order: local Ollama (Hermes) → online Hermes (OpenAI-compatible) → heuristic.
+// Gemini is intentionally not used.
 import { Directive, ExecutionTree, log } from "../protocol/types.js";
 
 const ollamaUrl = (): string => process.env.OLLAMA_URL ?? "http://127.0.0.1:11434";
-const model = (): string => process.env.YHWH_MODEL ?? "qwen2.5:7b";
+const model = (): string => process.env.YHWH_MODEL ?? process.env.HERMES_MODEL ?? "hermes3:8b";
 
-/** Raw completion against local Ollama, Gemini API, or deterministic reasoning fallback. */
+/** OpenAI-compatible chat completion (Nous Portal, OpenRouter, custom Hermes endpoint). */
+async function hermesOnlineComplete(prompt: string, system?: string): Promise<string | null> {
+  const base = (process.env.HERMES_BASE_URL ?? "").replace(/\/$/, "");
+  const apiKey = process.env.HERMES_API_KEY ?? "";
+  const onlineModel = process.env.HERMES_MODEL ?? model();
+  if (!base) return null;
+
+  try {
+    const messages: { role: string; content: string }[] = [];
+    if (system) messages.push({ role: "system", content: system });
+    messages.push({ role: "user", content: prompt });
+
+    const headers: Record<string, string> = { "Content-Type": "application/json" };
+    if (apiKey) headers.Authorization = `Bearer ${apiKey}`;
+
+    const res = await fetch(`${base}/chat/completions`, {
+      method: "POST",
+      headers,
+      body: JSON.stringify({
+        model: onlineModel,
+        messages,
+        temperature: 0.3,
+      }),
+    });
+    if (!res.ok) return null;
+    const json = (await res.json()) as {
+      choices?: { message?: { content?: string } }[];
+    };
+    return json.choices?.[0]?.message?.content ?? null;
+  } catch {
+    return null;
+  }
+}
+
+/** Raw completion: Ollama Hermes → online Hermes → heuristic. */
 export async function complete(prompt: string, system?: string): Promise<string> {
-  // 1. Try local Ollama if configured
+  // 1. Local Ollama (Hermes / any pulled model)
   try {
     const ctrl = new AbortController();
-    const timer = setTimeout(() => ctrl.abort(), 2000);
+    const timer = setTimeout(() => ctrl.abort(), Number(process.env.OLLAMA_TIMEOUT_MS ?? 60_000));
     const res = await fetch(`${ollamaUrl()}/api/generate`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -23,32 +58,12 @@ export async function complete(prompt: string, system?: string): Promise<string>
       if (json.response) return json.response;
     }
   } catch {
-    // Ollama offline / unreachable — proceed to fallback
+    // Ollama offline — try online Hermes
   }
 
-  // 2. Try Gemini API if key is present
-  const geminiKey = process.env.GEMINI_API_KEY;
-  if (geminiKey) {
-    try {
-      const res = await fetch(
-        `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${geminiKey}`,
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            contents: [{ parts: [{ text: (system ? `${system}\n\n` : "") + prompt }] }],
-          }),
-        }
-      );
-      if (res.ok) {
-        const json = (await res.json()) as any;
-        const text = json.candidates?.[0]?.content?.parts?.[0]?.text;
-        if (text) return text;
-      }
-    } catch {
-      // Gemini API failed — proceed to heuristic reasoning
-    }
-  }
+  // 2. Online Hermes (OpenAI-compatible — not Gemini)
+  const online = await hermesOnlineComplete(prompt, system);
+  if (online) return online;
 
   // 3. Deterministic heuristic completion
   log("info", "yhwh", "heuristic_completion_fallback", { promptSummary: prompt.slice(0, 60) });
@@ -65,7 +80,6 @@ function heuristicPlan(directive: Directive): ExecutionTree {
   const nodes: ExecutionTree["nodes"] = [];
   const rootId = "task-1-reason";
 
-  // First step: Analyze directive intent
   nodes.push({
     id: rootId,
     kind: "llm.reason",
@@ -103,7 +117,6 @@ function heuristicPlan(directive: Directive): ExecutionTree {
     });
   }
 
-  // Notify/fanout step
   const lastTask = nodes[nodes.length - 1];
   nodes.push({
     id: "task-notify-delivery",
@@ -140,7 +153,6 @@ export async function plan(directive: Directive): Promise<ExecutionTree> {
     }
     return tree;
   } catch {
-    // Intelligent heuristic DAG plan
     log("info", "yhwh", "using_heuristic_dag_plan");
     return heuristicPlan(directive);
   }
