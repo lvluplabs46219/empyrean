@@ -1,5 +1,7 @@
 // Daemon entrypoint: boots Michael (orchestrator), listens on HTTP (port 3000) and UDS socket.
 import http from "node:http";
+import fs from "node:fs";
+import path from "node:path";
 import { Michael } from "./michael/orchestrator.js";
 import { serve } from "./transport/uds.js";
 import { Envelope, Directive, AgentName, log } from "./protocol/types.js";
@@ -70,6 +72,42 @@ async function main() {
         res.end(renderDashboard());
       }
       return;
+    }
+
+    // Serve Three.js library and addons locally
+    if (req.method === "GET" && pathname.startsWith("/vendor/three/")) {
+      const rel = pathname.replace("/vendor/three/", "");
+      let resolvedFile = "";
+      if (rel === "build/three.module.js" || rel === "three.module.js") {
+        resolvedFile = path.resolve(process.cwd(), "node_modules/three/build/three.module.js");
+      } else if (rel.startsWith("addons/") || rel.startsWith("examples/jsm/")) {
+        const sub = rel.replace(/^addons\/|^examples\/jsm\//, "");
+        resolvedFile = path.resolve(process.cwd(), "node_modules/three/examples/jsm", sub);
+      } else {
+        resolvedFile = path.resolve(process.cwd(), "node_modules/three", rel);
+      }
+
+      if (fs.existsSync(resolvedFile) && fs.statSync(resolvedFile).isFile()) {
+        res.writeHead(200, {
+          "Content-Type": "application/javascript; charset=utf-8",
+          "Cache-Control": "public, max-age=86400",
+        });
+        fs.createReadStream(resolvedFile).pipe(res);
+        return;
+      }
+    }
+
+    // Serve Three.js 3D Nexus client module
+    if (req.method === "GET" && (pathname === "/vendor/nexus-3d.js" || pathname === "/js/nexus-3d.js")) {
+      const filePath = path.resolve(process.cwd(), "public/nexus-3d.js");
+      if (fs.existsSync(filePath)) {
+        res.writeHead(200, {
+          "Content-Type": "application/javascript; charset=utf-8",
+          "Cache-Control": "no-cache",
+        });
+        fs.createReadStream(filePath).pipe(res);
+        return;
+      }
     }
 
     // Health check
@@ -246,6 +284,89 @@ async function main() {
         sendJson(200, { ok: true, userMessage: userMsg });
       } catch (err) {
         sendJson(500, { error: String(err) });
+      }
+      return;
+    }
+
+    // Settings endpoints (Core Server Settings, Global Runtime Options, Hermes Models)
+    if (req.method === "GET" && pathname === "/api/settings") {
+      sendJson(200, michael.getStore().getFullSettings());
+      return;
+    }
+    if (req.method === "POST" && pathname === "/api/settings") {
+      try {
+        const body = await readBody();
+        const updated = michael.getStore().updateFullSettings(body);
+        log("info", "michael", "settings_updated", { keys: Object.keys(body) });
+        sendJson(200, { ok: true, settings: updated });
+      } catch (e) {
+        sendJson(400, { error: String(e) });
+      }
+      return;
+    }
+
+    // Endpoint Connectivity Tester (for Ollama, Hermes, or OpenAI-compatible proxies)
+    if (req.method === "POST" && pathname === "/api/settings/test-connection") {
+      try {
+        const body = await readBody();
+        const testUrl = (body.url || "").trim();
+        const apiKey = (body.apiKey || "").trim();
+        const t0 = Date.now();
+        if (!testUrl) {
+          sendJson(400, { ok: false, error: "Endpoint URL cannot be empty" });
+          return;
+        }
+
+        const controller = new AbortController();
+        const timer = setTimeout(() => controller.abort(), 3500);
+        try {
+          const headers: Record<string, string> = { "Content-Type": "application/json" };
+          if (apiKey) headers["Authorization"] = `Bearer ${apiKey}`;
+          const res = await fetch(testUrl, {
+            method: "GET",
+            headers,
+            signal: controller.signal,
+          });
+          clearTimeout(timer);
+          const latencyMs = Date.now() - t0;
+          sendJson(200, {
+            ok: true,
+            status: res.status,
+            latencyMs,
+            message: `Endpoint reachable: responded with HTTP ${res.status} (${latencyMs}ms)`,
+          });
+        } catch (fetchErr: any) {
+          clearTimeout(timer);
+          sendJson(200, {
+            ok: false,
+            latencyMs: Date.now() - t0,
+            error: fetchErr.name === "AbortError" ? "Connection timed out after 3500ms" : (fetchErr.message || String(fetchErr)),
+          });
+        }
+      } catch (e: any) {
+        sendJson(500, { ok: false, error: String(e) });
+      }
+      return;
+    }
+
+    // Local Listener Route for GABRIEL_WEBHOOKS
+    if (req.method === "POST" && (pathname === "/api/webhooks/gabriel" || pathname === "/webhook")) {
+      try {
+        const body = await readBody();
+        log("info", "gabriel", "local_webhook_received", { topic: body?.topic ?? "general" });
+        michael.getStore().addMessage({
+          chatId: "general-swarm",
+          senderId: "gabriel",
+          senderName: "Gabriel / Ryan (Local Webhook Listener)",
+          senderAvatarColor: "#10b981",
+          text: `🔔 **Local Webhook Event Ingested [200 OK]**:\n` + "```json\n" + JSON.stringify(body, null, 2) + "\n```",
+          toolUsage: { tool: "LocalWebhookListener", status: "completed", durationMs: 40 },
+          timestamp: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
+          isOutgoing: false,
+        });
+        sendJson(200, { status: "received", listener: "local_gabriel_route", timestamp: new Date().toISOString() });
+      } catch (e) {
+        sendJson(400, { error: String(e) });
       }
       return;
     }

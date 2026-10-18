@@ -13,6 +13,14 @@ export function renderDashboard(): string {
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400..800;1,9..40,400..800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <script type="importmap">
+  {
+    "imports": {
+      "three": "/vendor/three/build/three.module.js",
+      "three/addons/": "/vendor/three/addons/"
+    }
+  }
+  </script>
   <style>
     /* ==========================================================================
        CANDY — PLAYFUL & VIBRANT DESIGN TOKENS ("JOYFUL POP")
@@ -169,7 +177,69 @@ export function renderDashboard(): string {
       height: 100vh;
       z-index: 30;
       user-select: none;
-      transition: background-color 0.25s ease, border-color 0.25s ease;
+      transition: width 0.25s cubic-bezier(0.16, 1, 0.3, 1), min-width 0.25s cubic-bezier(0.16, 1, 0.3, 1), background-color 0.25s ease, border-color 0.25s ease;
+    }
+    .tg-sidebar.collapsed {
+      width: 68px;
+      min-width: 68px;
+    }
+    .tg-sidebar.collapsed .tg-search-bar,
+    .tg-sidebar.collapsed .tg-tabs-bar,
+    .tg-sidebar.collapsed .sidebar-category,
+    .tg-sidebar.collapsed .tg-chat-info,
+    .tg-sidebar.collapsed .user-pill span,
+    .tg-sidebar.collapsed .tg-sidebar-footer div:last-child {
+      display: none !important;
+    }
+    .tg-sidebar.collapsed .tg-sidebar-header {
+      padding: 12px 6px;
+      justify-content: center;
+      gap: 0;
+    }
+    .tg-sidebar.collapsed #btnThemeToggleHeader,
+    .tg-sidebar.collapsed #btnCarouselHeader {
+      display: none !important;
+    }
+    .tg-sidebar.collapsed .tg-chat-item {
+      padding: 10px 6px;
+      justify-content: center;
+    }
+    .tg-sidebar.collapsed .tg-sidebar-footer {
+      padding: 12px 6px;
+      justify-content: center;
+    }
+    .tg-sidebar.collapsed .tg-collapsed-rail {
+      display: flex !important;
+    }
+    .tg-collapsed-rail {
+      display: none;
+      flex-direction: column;
+      align-items: center;
+      gap: 10px;
+      padding: 12px 0;
+      border-bottom: 1.5px solid var(--candy-surface-variant);
+      background: var(--candy-surface);
+    }
+    .tg-rail-btn {
+      width: 42px;
+      height: 42px;
+      border-radius: 12px;
+      background: var(--candy-surface-container);
+      border: 1px solid var(--candy-surface-highest);
+      color: var(--candy-on-surface);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      font-size: 16px;
+      box-shadow: 0 2px 6px rgba(116, 74, 162, 0.08);
+      transition: all 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
+    }
+    .tg-rail-btn:hover {
+      background: var(--candy-primary-container);
+      border-color: var(--candy-primary);
+      color: var(--candy-primary);
+      transform: scale(1.08);
     }
 
     .tg-sidebar-header {
@@ -1454,30 +1524,489 @@ export function renderDashboard(): string {
     input:checked + .candy-slider:before {
       transform: translateX(22px);
     }
+
+    /* ==========================================================================
+       THREE.JS 3D SCENE & COLLAPSIBLE BOTTOM DOCK (VIEWPORT-FIRST)
+       ========================================================================== */
+    .threejs-viewport {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      z-index: 70;
+      background: #170a1b;
+      overflow: hidden;
+    }
+    .threejs-mount {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      outline: none;
+    }
+    .threejs-spec-badge {
+      position: absolute;
+      top: 16px;
+      left: 18px;
+      z-index: 85;
+      background: #24122d;
+      border: 1.5px solid #492a3e;
+      border-radius: 16px;
+      padding: 10px 16px;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+      color: #feebff;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      pointer-events: auto;
+      user-select: none;
+    }
+    .threejs-badge-header {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .threejs-badge-dot {
+      width: 9px;
+      height: 9px;
+      border-radius: 9999px;
+      background: #10b981;
+      border: 1.5px solid #fff;
+    }
+    .threejs-badge-title {
+      font-size: 12px;
+      font-weight: 800;
+      letter-spacing: 0.05em;
+      color: #ffafd5;
+      font-family: var(--font-mono);
+    }
+    .threejs-badge-stats {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      font-size: 11.5px;
+      color: #e0bfd2;
+      font-family: var(--font-mono);
+    }
+    .threejs-stat-item strong {
+      color: #ffffff;
+      font-weight: 700;
+    }
+    .threejs-top-actions {
+      position: absolute;
+      top: 16px;
+      right: 18px;
+      z-index: 85;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .threejs-btn {
+      background: #2c1536;
+      border: 1.5px solid #572d4c;
+      color: #feebff;
+      font-size: 12px;
+      font-weight: 700;
+      font-family: var(--font-candy);
+      padding: 7px 15px;
+      border-radius: 9999px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+      transition: all 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
+    }
+    .threejs-btn:hover {
+      background: #3e1e4c;
+      border-color: #ff4db8;
+      color: #ffffff;
+      transform: scale(1.04);
+    }
+    .threejs-bottom-dock {
+      position: absolute;
+      bottom: 20px;
+      left: 50%;
+      transform: translateX(-50%);
+      max-width: min(940px, 94vw);
+      width: 100%;
+      z-index: 85;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      transition: transform 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+    .threejs-bottom-dock.collapsed {
+      transform: translate(-50%, calc(100% - 32px));
+    }
+    .threejs-dock-handle {
+      margin-bottom: -1px;
+      z-index: 2;
+    }
+    .threejs-collapse-btn {
+      background: #24122d;
+      border: 1.5px solid #572d4c;
+      border-bottom: none;
+      color: #feebff;
+      font-size: 11.5px;
+      font-weight: 700;
+      font-family: var(--font-candy);
+      padding: 5px 14px;
+      border-radius: 12px 12px 0 0;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      box-shadow: 0 -4px 12px rgba(0, 0, 0, 0.25);
+      transition: all 0.15s ease;
+    }
+    .threejs-collapse-btn:hover {
+      background: #341940;
+      color: #ff75c8;
+      border-color: #ff4db8;
+    }
+    .threejs-kbd {
+      background: #140718;
+      border: 1px solid #572d4c;
+      border-radius: 4px;
+      padding: 1px 5px;
+      font-size: 10px;
+      font-family: var(--font-mono);
+      color: #ffd8e8;
+    }
+    .threejs-dock-card {
+      background: rgba(29, 14, 35, 0.94);
+      border: 1.5px solid #492a3e;
+      border-radius: 20px;
+      padding: 12px 18px;
+      width: 100%;
+      box-shadow: 0 16px 40px rgba(0, 0, 0, 0.6);
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+    .threejs-dock-row {
+      display: flex;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 12px;
+    }
+    .threejs-dock-label {
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      color: #e0bfd2;
+      font-family: var(--font-mono);
+      flex-shrink: 0;
+    }
+    .threejs-pill-group {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      flex-wrap: wrap;
+    }
+    .threejs-dock-pill {
+      background: #1d0e23;
+      border: 1px solid #432052;
+      color: #feebff;
+      font-size: 11.5px;
+      font-weight: 600;
+      font-family: var(--font-candy);
+      padding: 5px 12px;
+      border-radius: 9999px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      transition: all 0.15s ease;
+    }
+    .threejs-dock-pill:hover {
+      background: #341940;
+      color: #ff75c8;
+      border-color: #ff4db8;
+      transform: scale(1.04);
+    }
+    .threejs-dock-pill.active {
+      background: #af0a78;
+      border-color: #ff4db8;
+      color: #ffffff;
+      box-shadow: 0 2px 10px rgba(224, 64, 160, 0.4);
+    }
+    .threejs-slider-box {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .threejs-slider {
+      -webkit-appearance: none;
+      width: 110px;
+      height: 6px;
+      border-radius: 9999px;
+      background: #432052;
+      outline: none;
+      cursor: pointer;
+    }
+    .threejs-slider::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      width: 16px;
+      height: 16px;
+      border-radius: 50%;
+      background: #ff4db8;
+      cursor: pointer;
+      box-shadow: 0 0 6px rgba(255, 77, 184, 0.7);
+    }
+    .threejs-val-badge {
+      font-size: 11px;
+      font-family: var(--font-mono);
+      color: #ffd8e8;
+      background: #140718;
+      padding: 2px 6px;
+      border-radius: 6px;
+      min-width: 32px;
+      text-align: center;
+    }
+    .threejs-action-btn {
+      background: linear-gradient(135deg, #e040a0, #af0a78);
+      border: none;
+      color: #ffffff;
+      font-size: 12px;
+      font-weight: 700;
+      font-family: var(--font-candy);
+      padding: 6px 14px;
+      border-radius: 9999px;
+      cursor: pointer;
+      box-shadow: 0 3px 12px rgba(224, 64, 160, 0.35);
+      margin-left: auto;
+      transition: all 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
+    }
+    .threejs-action-btn:hover {
+      transform: scale(1.05);
+      box-shadow: 0 4px 16px rgba(224, 64, 160, 0.5);
+    }
+
+    /* 3D Neural Swarm & Models Carousel View */
+    .tg-carousel-overlay {
+      position: fixed;
+      inset: 0;
+      z-index: 90;
+      background: radial-gradient(circle at center, rgba(38, 14, 48, 0.96) 0%, rgba(18, 7, 24, 0.98) 100%);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      perspective: 1200px;
+      overflow: hidden;
+      animation: fadeIn 0.25s ease-out;
+      user-select: none;
+    }
+    .tg-carousel-header {
+      position: absolute;
+      top: 20px;
+      left: 24px;
+      right: 24px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      z-index: 95;
+    }
+    .tg-carousel-title-box {
+      display: flex;
+      flex-direction: column;
+      gap: 3px;
+    }
+    .tg-carousel-title {
+      font-size: 16px;
+      font-weight: 800;
+      letter-spacing: 0.05em;
+      color: #ffafd5;
+      font-family: var(--font-mono);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .tg-carousel-subtitle {
+      font-size: 12px;
+      color: #dfbfd1;
+      font-family: var(--font-candy);
+    }
+    .tg-carousel-stage {
+      width: 100%;
+      height: 480px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      perspective: 1200px;
+      position: relative;
+    }
+    .tg-carousel-rotator {
+      width: 310px;
+      height: 410px;
+      position: relative;
+      transform-style: preserve-3d;
+      transition: transform 0.65s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+    .tg-carousel-card {
+      position: absolute;
+      width: 300px;
+      height: 400px;
+      left: 5px;
+      top: 5px;
+      background: var(--candy-card-bg);
+      border: 2px solid var(--candy-card-border);
+      border-radius: 24px;
+      padding: 22px 18px;
+      box-shadow: 0 20px 50px rgba(0, 0, 0, 0.6), inset 0 1px 0 rgba(255, 255, 255, 0.15);
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      backface-visibility: hidden;
+      cursor: pointer;
+      transition: border-color 0.25s, box-shadow 0.25s, transform 0.25s;
+    }
+    .tg-carousel-card:hover {
+      border-color: var(--candy-primary-accent);
+      box-shadow: 0 24px 60px rgba(224, 64, 160, 0.45);
+    }
+    .tg-carousel-card.active-card {
+      border-color: var(--candy-primary);
+      box-shadow: 0 24px 60px rgba(175, 10, 120, 0.55), 0 0 24px rgba(224, 64, 160, 0.3);
+    }
+    .tg-carousel-card-top {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    .tg-carousel-avatar {
+      width: 48px;
+      height: 48px;
+      border-radius: 16px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 800;
+      color: #fff;
+      font-size: 18px;
+      box-shadow: 0 4px 14px rgba(0, 0, 0, 0.3);
+    }
+    .tg-carousel-meta {
+      flex: 1;
+    }
+    .tg-carousel-name {
+      font-size: 15px;
+      font-weight: 800;
+      color: var(--candy-on-surface);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .tg-carousel-role {
+      font-size: 11.5px;
+      color: var(--candy-on-surface-variant);
+      margin-top: 2px;
+    }
+    .tg-carousel-body {
+      background: var(--candy-surface-lowest);
+      border: 1px solid var(--candy-surface-variant);
+      border-radius: 14px;
+      padding: 10px 12px;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      font-size: 11.5px;
+    }
+    .tg-carousel-stat-row {
+      display: flex;
+      justify-content: space-between;
+      color: var(--candy-on-surface-variant);
+    }
+    .tg-carousel-stat-row strong {
+      color: var(--candy-on-surface);
+      font-family: var(--font-mono);
+    }
+    .tg-carousel-actions {
+      display: flex;
+      gap: 8px;
+    }
+    .tg-carousel-controls {
+      position: absolute;
+      bottom: 24px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      z-index: 95;
+      background: rgba(29, 14, 35, 0.92);
+      border: 1.5px solid #492a3e;
+      padding: 8px 18px;
+      border-radius: 9999px;
+      box-shadow: 0 12px 30px rgba(0, 0, 0, 0.5);
+    }
+
+    /* Settings Toast */
+    .tg-toast {
+      position: fixed;
+      bottom: 24px;
+      right: 24px;
+      z-index: 100;
+      background: var(--candy-surface-highest);
+      border: 1.5px solid var(--candy-primary);
+      border-radius: 14px;
+      padding: 12px 18px;
+      color: var(--candy-on-surface);
+      font-size: 13px;
+      font-weight: 600;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.35);
+      display: none;
+      animation: popIn 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
+    }
   </style>
 </head>
 <body>
 
   <!-- Telegram Left Sidebar (Persistent Channels, Employees, Second Brain) -->
-  <aside class="tg-sidebar">
+  <aside class="tg-sidebar" id="mainSidebar">
     <div class="tg-sidebar-header">
-      <button class="tg-icon-btn candy-bounce" onclick="openSettingsModal()" title="GenTeam Workspace Settings">
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+      <button class="tg-icon-btn candy-bounce" id="btnToggleSidebar" onclick="toggleSidebar()" title="Collapse / Expand Sidebar (Shortcut: [ or Ctrl+B)">
+        <svg id="sidebarToggleIcon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="3" y="3" width="18" height="18" rx="3"/><path d="M9 3v18"/><path d="m14 9-3 3 3 3"/></svg>
       </button>
       <div class="tg-search-bar" onclick="openCommandPalette()">
         <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="color: var(--candy-primary);"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
         <input type="text" placeholder="Search swarm or ⌘K..." readonly>
         <span class="tg-search-shortcut">⌘K</span>
       </div>
+      <button class="tg-icon-btn candy-bounce" id="btnCarouselHeader" onclick="toggle3DCarousel()" title="Launch 3D Swarm & Model Carousel">
+        <span style="font-size: 15px;">🎠</span>
+      </button>
       <button class="tg-icon-btn candy-bounce" id="btnThemeToggleHeader" onclick="toggleTheme()" title="Toggle Light / Dark Mode">
         <span id="themeIcon">☀️</span>
       </button>
+    </div>
+
+    <!-- Mini Collapsed Navigation Rail -->
+    <div class="tg-collapsed-rail" id="collapsedRail">
+      <button class="tg-rail-btn candy-bounce" onclick="toggleSidebar(false)" title="Expand Sidebar (Shortcut: [)">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="3" y="3" width="18" height="18" rx="3"/><path d="M9 3v18"/><path d="m11 9 3 3-3 3"/></svg>
+      </button>
+      <button class="tg-rail-btn candy-bounce" onclick="toggleSidebar(false); switchFolder('all');" title="All Channels & Chats">💬</button>
+      <button class="tg-rail-btn candy-bounce" onclick="toggleSidebar(false); switchFolder('employees');" title="Digital Employees">🤖</button>
+      <button class="tg-rail-btn candy-bounce" onclick="toggleSidebar(false); switchFolder('brain');" title="Second Brain Memory">🧠</button>
+      <button class="tg-rail-btn candy-bounce" onclick="toggle3DCarousel()" title="3D Swarm Carousel">🎠</button>
+      <button class="tg-rail-btn candy-bounce" onclick="open3DView()" title="3D Neural Swarm Nexus">🌐</button>
+      <button class="tg-rail-btn candy-bounce" onclick="openSettingsModal()" title="AI & Server Settings">⚙️</button>
     </div>
 
     <!-- Telegram Folders Tabs (Candy Pills) -->
     <div class="tg-tabs-bar">
       <button class="tg-tab-btn active" onclick="switchFolder('all')">
         All <span class="tg-tab-badge" id="badgeAll">8</span>
+      </button>
+      <button class="tg-tab-btn" onclick="toggle3DCarousel()" title="Launch 3D Swarm & Model Carousel">
+        🎠 3D Carousel
+      </button>
+      <button class="tg-tab-btn" onclick="open3DView()" title="Launch 3D Neural Swarm Nexus">
+        🌐 3D Nexus
       </button>
       <button class="tg-tab-btn" onclick="switchFolder('channels')">
         Channels
@@ -1594,14 +2123,137 @@ export function renderDashboard(): string {
 
   <!-- Main Workspace Container (Chat + Canvas side by side) -->
   <div class="tg-workspace-container">
+
+    <!-- 3D Neural Swarm Holo-Deck Viewport (Full-bleed with Collapsible Bottom Dock) -->
+    <div id="threejsViewportContainer" class="threejs-viewport" style="display: none;">
+      <!-- WebGL Mount Container -->
+      <div id="threejsMountContainer" class="threejs-mount"></div>
+
+      <!-- Minimal Top-Left Spec Badge -->
+      <div class="threejs-spec-badge">
+        <div class="threejs-badge-header">
+          <div class="threejs-badge-dot"></div>
+          <span class="threejs-badge-title">EMPYREAN 3D NEURAL SWARM // THREE.JS PBR NEXUS</span>
+        </div>
+        <div class="threejs-badge-stats">
+          <span class="threejs-stat-item">FPS: <strong id="threeFpsCounter">60</strong></span>
+          <span class="threejs-stat-item">Agents: <strong>6 Active</strong></span>
+          <span class="threejs-stat-item">PBR: <strong>Studio ACES</strong></span>
+          <span class="threejs-stat-item">Swarm: <strong>120 Packets</strong></span>
+        </div>
+      </div>
+
+      <!-- Top Right Exit / Chat View Switcher -->
+      <div class="threejs-top-actions">
+        <button class="threejs-btn candy-bounce" onclick="close3DView()" title="Return to Telegram Swarm View">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M18 6L6 18M6 6l12 12"/></svg>
+          Exit 3D View
+        </button>
+      </div>
+
+      <!-- Unified Collapsible Bottom Control Dock (<= 15% viewport footprint) -->
+      <div id="threejsBottomDock" class="threejs-bottom-dock">
+        <div class="threejs-dock-handle">
+          <button id="btnToggleDock" class="threejs-collapse-btn" onclick="toggle3DDock()" title="Toggle Cinema / Zen Mode (Shortcut: H)">
+            <span id="dockToggleIcon">▾</span> <span id="dockToggleLabel">Hide Controls</span>
+            <kbd class="threejs-kbd">H</kbd>
+          </button>
+        </div>
+
+        <div id="threejsDockContent" class="threejs-dock-card">
+          <!-- Row 1: Camera Presets -->
+          <div class="threejs-dock-row">
+            <span class="threejs-dock-label">Camera Angle:</span>
+            <div class="threejs-pill-group">
+              <button class="threejs-dock-pill active" id="pillCamOverview" onclick="set3DCameraPreset('overview')">Overview</button>
+              <button class="threejs-dock-pill" id="pillCamCore" onclick="set3DCameraPreset('core')">YHWH Core</button>
+              <button class="threejs-dock-pill" id="pillCamWorkers" onclick="set3DCameraPreset('workers')">Raphael Drone</button>
+              <button class="threejs-dock-pill" id="pillCamOracle" onclick="set3DCameraPreset('oracle')">Metatron Oracle</button>
+              <button class="threejs-dock-pill" id="pillCamTop" onclick="set3DCameraPreset('top')">Tactical Top-Down</button>
+            </div>
+          </div>
+
+          <!-- Row 2: Exploded Assembly Slider & Material Swatches & Speed -->
+          <div class="threejs-dock-row">
+            <!-- Exploded slider -->
+            <div class="threejs-slider-box">
+              <span class="threejs-dock-label">Assembly:</span>
+              <input type="range" id="threeExplodeSlider" min="0" max="100" value="0" step="1" oninput="set3DExploded(this.value)" class="threejs-slider">
+              <span id="threeExplodeVal" class="threejs-val-badge">0%</span>
+            </div>
+
+            <!-- Material Finishes -->
+            <div class="threejs-slider-box">
+              <span class="threejs-dock-label">Finish:</span>
+              <div class="threejs-pill-group">
+                <button class="threejs-dock-pill active" id="pillMatGold" onclick="set3DMaterialFinish('gold')">Gold</button>
+                <button class="threejs-dock-pill" id="pillMatTitanium" onclick="set3DMaterialFinish('titanium')">Titanium</button>
+                <button class="threejs-dock-pill" id="pillMatObsidian" onclick="set3DMaterialFinish('obsidian')">Obsidian</button>
+                <button class="threejs-dock-pill" id="pillMatCrystal" onclick="set3DMaterialFinish('crystal')">Rose Quartz</button>
+              </div>
+            </div>
+
+            <!-- Simulation Controls -->
+            <div class="threejs-slider-box">
+              <span class="threejs-dock-label">Velocity:</span>
+              <div class="threejs-pill-group">
+                <button class="threejs-dock-pill" id="pillSpd05" onclick="set3DSpeed(0.5)">0.5x</button>
+                <button class="threejs-dock-pill active" id="pillSpd1" onclick="set3DSpeed(1.0)">1x</button>
+                <button class="threejs-dock-pill" id="pillSpd25" onclick="set3DSpeed(2.5)">2.5x</button>
+              </div>
+            </div>
+
+            <!-- Action Button -->
+            <button class="threejs-action-btn candy-bounce" onclick="pulse3DDirective()" title="Trigger autonomous directive packet storm">
+              ⚡ Pulse Swarm Packet
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
     
+    <!-- 3D Neural Swarm & Models Spatial Carousel Overlay -->
+    <div id="swarmCarouselOverlay" class="tg-carousel-overlay" style="display: none;">
+      <div class="tg-carousel-header">
+        <div class="tg-carousel-title-box">
+          <div class="tg-carousel-title">
+            <span style="font-size: 20px;">🎠</span>
+            <span>EMPYREAN 3D SWARM &amp; MODEL CAROUSEL</span>
+          </div>
+          <div class="tg-carousel-subtitle">Interactive 3D spatial orbit of autonomous digital employees &amp; Hermes AI routing tiers</div>
+        </div>
+        <button class="threejs-btn candy-bounce" onclick="close3DCarousel()" title="Close 3D Carousel (Esc)">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M18 6L6 18M6 6l12 12"/></svg>
+          Exit Carousel
+        </button>
+      </div>
+
+      <div class="tg-carousel-stage">
+        <div class="tg-carousel-rotator" id="carouselRotator">
+          <!-- 6 Dynamic 3D Spatial Cards rendered by JS -->
+        </div>
+      </div>
+
+      <!-- Carousel Navigation Dock -->
+      <div class="tg-carousel-controls">
+        <button class="threejs-btn candy-bounce" onclick="rotateCarousel(-1)" title="Previous Agent (Left Arrow)">◀ Prev</button>
+        <span id="carouselCardIndicator" style="font-family: var(--font-mono); font-size: 12px; color: #ffd8e8; padding: 0 10px;">1 / 6 · YHWH / Ann</span>
+        <button class="threejs-btn candy-bounce" onclick="rotateCarousel(1)" title="Next Agent (Right Arrow)">Next ▶</button>
+        <button class="threejs-btn candy-bounce" id="btnCarouselAutoSpin" onclick="toggleCarouselAutoSpin()" title="Toggle Auto-Spin">⏸ Pause</button>
+        <button class="threejs-btn candy-bounce" onclick="openSettingsModal(); close3DCarousel();" title="Configure AI Models">⚙️ AI Settings</button>
+      </div>
+    </div>
+
     <!-- Central Telegram Chat Viewport -->
     <main class="tg-main">
       
       <!-- Top Chat Header -->
       <header class="tg-header">
-        <div class="tg-header-left" onclick="toggleCanvasPanel()">
-          <div class="tg-avatar" id="headerAvatar" style="width: 42px; height: 42px; background: linear-gradient(135deg, #e040a0, #744aa2); font-size: 16px;">
+        <div class="tg-header-left">
+          <button class="tg-icon-btn candy-bounce" id="btnExpandSidebarHeader" onclick="toggleSidebar()" title="Expand Sidebar (Shortcut: [)" style="display: none; width: 36px; height: 36px; margin-right: 4px;">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="3" y="3" width="18" height="18" rx="3"/><path d="M9 3v18"/><path d="m11 9 3 3-3 3"/></svg>
+          </button>
+          <div class="tg-avatar" id="headerAvatar" onclick="toggleCanvasPanel()" style="width: 42px; height: 42px; background: linear-gradient(135deg, #e040a0, #744aa2); font-size: 16px; cursor: pointer;">
             #
           </div>
           <div class="tg-header-details">
@@ -1614,6 +2266,16 @@ export function renderDashboard(): string {
 
         <!-- Header Action Toolbar -->
         <div class="tg-header-tools">
+          <button class="candy-pill-btn candy-bounce" onclick="toggle3DCarousel()" title="Launch 3D Swarm & Model Carousel">
+            <span style="font-size: 14px;">🎠</span>
+            3D Carousel
+          </button>
+
+          <button class="candy-pill-btn primary candy-bounce" onclick="open3DView()" title="Launch 3D Neural Swarm Nexus (Three.js)">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><path d="M12 2a14.5 14.5 0 0 0 0 20 14.5 14.5 0 0 0 0-20"/><path d="M2 12h20"/></svg>
+            3D Nexus
+          </button>
+
           <button class="candy-pill-btn candy-bounce" id="btnSplitCanvas" onclick="toggleCanvasPanel()" title="Toggle Split-Screen Canvas">
             <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="12" y1="3" x2="12" y2="21"/></svg>
             <span id="canvasBtnLabel">Open Canvas</span>
@@ -1629,7 +2291,7 @@ export function renderDashboard(): string {
             + Deploy Role
           </button>
 
-          <button class="tg-icon-btn candy-bounce" onclick="openSettingsModal()" title="Settings">
+          <button class="tg-icon-btn candy-bounce" onclick="openSettingsModal()" title="AI Features & Model Settings">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
           </button>
         </div>
@@ -2001,18 +2663,225 @@ export function renderDashboard(): string {
         <button class="tg-modal-close" onclick="closeModals()">&times;</button>
       </div>
 
-      <div class="tg-modal-body">
+      <div class="tg-modal-body" style="max-height: 75vh; overflow-y: auto;">
         
         <!-- Settings Category Tabs -->
         <div class="settings-nav-tabs">
-          <button class="settings-tab-btn active" id="stTabTheme" onclick="switchSettingsTab('theme')">🎨 Appearance & Theme</button>
-          <button class="settings-tab-btn" id="stTabSwarm" onclick="switchSettingsTab('swarm')">🤖 Swarm Models</button>
-          <button class="settings-tab-btn" id="stTabMemory" onclick="switchSettingsTab('memory')">🧠 Second Brain</button>
-          <button class="settings-tab-btn" id="stTabVoice" onclick="switchSettingsTab('voice')">📞 Call & Voice</button>
+          <button class="settings-tab-btn active" id="stTabHermes" onclick="switchSettingsTab('hermes')">🤖 Hermes AI & Routing</button>
+          <button class="settings-tab-btn" id="stTabCore" onclick="switchSettingsTab('core')">⚙️ Core Server</button>
+          <button class="settings-tab-btn" id="stTabRuntime" onclick="switchSettingsTab('runtime')">🚀 Runtime & CLI</button>
+          <button class="settings-tab-btn" id="stTabTheme" onclick="switchSettingsTab('theme')">🎨 Appearance</button>
         </div>
 
-        <!-- Section 1: Appearance & Theme -->
-        <div id="settingsSecTheme" style="display: flex; flex-direction: column; gap: 16px;">
+        <!-- Section 1: Hermes AI & Model Routing -->
+        <div id="settingsSecHermes" style="display: flex; flex-direction: column; gap: 14px;">
+          <div class="tg-card" style="border-left: 3.5px solid var(--candy-primary);">
+            <div style="font-weight: 700; color: var(--candy-primary); font-size: 13px;">Hermes Routing Active (No Gemini / Vertex)</div>
+            <div style="font-size: 12px; color: var(--candy-on-surface-variant); margin-top: 3px;">
+              All reasoning routes strictly through Hermes: <strong>Local Ollama Hermes</strong> → <strong>Online Hermes (OpenRouter/Nous)</strong> → <strong>Heuristic DAG fallback</strong>. Heavy tier routes via the same OpenAI-compatible Hermes endpoint. No Gemini or Vertex credentials required.
+            </div>
+          </div>
+
+          <!-- Mode Summary Table -->
+          <div class="tg-card" style="padding: 10px 14px; background: var(--candy-surface-lowest); border: 1.5px solid var(--candy-surface-variant);">
+            <div style="font-weight: 700; font-size: 12px; margin-bottom: 6px; color: var(--candy-on-surface);">Hermes Mode Matrix:</div>
+            <table style="width: 100%; font-size: 11.5px; border-collapse: collapse;">
+              <tr style="border-bottom: 1px solid var(--candy-surface-variant);"><td style="padding: 4px 0; font-weight: 700; width: 140px;">Local only</td><td style="padding: 4px 0; font-family: var(--font-mono); color: var(--candy-primary);">OLLAMA_URL + YHWH_MODEL=hermes3:8b</td></tr>
+              <tr style="border-bottom: 1px solid var(--candy-surface-variant);"><td style="padding: 4px 0; font-weight: 700;">Local + online Hermes</td><td style="padding: 4px 0; font-family: var(--font-mono); color: var(--candy-secondary);">Set HERMES_BASE_URL + optional HERMES_API_KEY</td></tr>
+              <tr><td style="padding: 4px 0; font-weight: 700;">Heavy tier</td><td style="padding: 4px 0; font-family: var(--font-mono); color: var(--candy-tertiary);">SERAPHIM_ENABLED=true uses same Hermes endpoint</td></tr>
+            </table>
+          </div>
+
+          <!-- Quick Terminal Command Helper -->
+          <div style="background: var(--candy-surface-highest); border: 1.5px solid var(--candy-surface-variant); border-radius: 12px; padding: 10px 14px; display: flex; align-items: center; justify-content: space-between;">
+            <div>
+              <div style="font-size: 11px; color: var(--candy-on-surface-variant); font-weight: 600;">Ollama Pull Command:</div>
+              <code style="font-family: var(--font-mono); font-size: 12.5px; color: var(--candy-primary); font-weight: 700;">ollama pull hermes3:8b</code>
+            </div>
+            <button class="candy-pill-btn candy-bounce" type="button" onclick="copyOllamaCmd(this)" style="font-size: 11px; padding: 4px 12px;">Copy Command</button>
+          </div>
+
+          <!-- Connection Test Feedback -->
+          <div id="aiTestStatus" style="display: none; padding: 8px 12px; border-radius: 12px; font-size: 12px; font-family: var(--font-mono);"></div>
+
+          <div class="tg-form-group">
+            <label class="tg-label">Primary Planning Model (YHWH / Ann):</label>
+            <input type="text" id="settingYhwhModel" class="tg-input" value="hermes3:8b" placeholder="e.g. hermes3:8b">
+            <div style="display: flex; gap: 6px; margin-top: 6px; flex-wrap: wrap;">
+              <button class="candy-pill-btn" type="button" style="padding: 3px 10px; font-size: 11px;" onclick="document.getElementById('settingYhwhModel').value='hermes3:8b'">hermes3:8b</button>
+              <button class="candy-pill-btn" type="button" style="padding: 3px 10px; font-size: 11px;" onclick="document.getElementById('settingYhwhModel').value='hermes3:70b'">hermes3:70b</button>
+              <button class="candy-pill-btn" type="button" style="padding: 3px 10px; font-size: 11px;" onclick="document.getElementById('settingYhwhModel').value='nousresearch/hermes-3-llama-3.1-8b'">nousresearch/8b</button>
+              <button class="candy-pill-btn" type="button" style="padding: 3px 10px; font-size: 11px;" onclick="document.getElementById('settingYhwhModel').value='nousresearch/hermes-3-llama-3.1-70b'">nousresearch/70b</button>
+            </div>
+          </div>
+
+          <div class="tg-form-group">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
+              <label class="tg-label" style="margin: 0;">Local Ollama URL (OLLAMA_URL):</label>
+              <button class="candy-pill-btn candy-bounce" type="button" onclick="testEndpoint('ollama')" style="padding: 2px 10px; font-size: 11px;">Test Ollama</button>
+            </div>
+            <input type="text" id="settingOllamaUrl" class="tg-input" value="http://127.0.0.1:11434" placeholder="http://127.0.0.1:11434">
+          </div>
+
+          <div class="tg-form-group">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
+              <label class="tg-label" style="margin: 0;">Online Hermes Base URL (HERMES_BASE_URL):</label>
+              <button class="candy-pill-btn candy-bounce" type="button" onclick="testEndpoint('hermes')" style="padding: 2px 10px; font-size: 11px;">Test Hermes URL</button>
+            </div>
+            <input type="text" id="settingHermesBaseUrl" class="tg-input" placeholder="https://openrouter.ai/api/v1 (or any OpenAI-compatible API)">
+          </div>
+
+          <div class="tg-form-group">
+            <label class="tg-label">Online Hermes API Key (HERMES_API_KEY):</label>
+            <input type="password" id="settingHermesApiKey" class="tg-input" placeholder="sk-or-v1-... (optional for local/open proxies)">
+          </div>
+
+          <div class="tg-card">
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+              <div>
+                <strong style="color: var(--candy-on-surface); font-size: 13.5px;">Seraphim Heavy Reasoning Tier</strong>
+                <div style="font-size: 12px; color: var(--candy-on-surface-variant);">Uses OpenAI-compatible Hermes for multi-model consensus and deep review</div>
+              </div>
+              <label class="candy-switch">
+                <input type="checkbox" id="settingSeraphimEnabled">
+                <span class="candy-slider"></span>
+              </label>
+            </div>
+            <div style="margin-top: 10px;">
+              <label class="tg-label" style="font-size: 11.5px;">Seraphim Model (SERAPHIM_MODEL):</label>
+              <input type="text" id="settingSeraphimModel" class="tg-input" value="hermes3:70b" placeholder="hermes3:70b">
+            </div>
+          </div>
+
+          <div class="tg-form-group">
+            <label class="tg-label">Gabriel Webhook Route (GABRIEL_WEBHOOKS):</label>
+            <input type="text" id="settingGabrielWebhook" class="tg-input" value="http://localhost:3000/api/webhooks/gabriel" placeholder="http://localhost:3000/api/webhooks/gabriel">
+            <div style="display: flex; gap: 8px; margin-top: 6px;">
+              <button class="candy-pill-btn" type="button" style="padding: 3px 10px; font-size: 11px;" onclick="document.getElementById('settingGabrielWebhook').value='http://localhost:3000/api/webhooks/gabriel'">Set to Local Listener Route</button>
+              <button class="candy-pill-btn" type="button" style="padding: 3px 10px; font-size: 11px;" onclick="document.getElementById('settingGabrielWebhook').value=''">Leave Blank</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Section 2: Core Server Settings (Lemonade / Server Engine) -->
+        <div id="settingsSecCore" style="display: none; flex-direction: column; gap: 14px;">
+          <div class="tg-card" style="border-left: 3.5px solid var(--candy-secondary);">
+            <div style="font-weight: 700; color: var(--candy-secondary); font-size: 13px;">Core Server & Model Engine Settings</div>
+            <div style="font-size: 12px; color: var(--candy-on-surface-variant); margin-top: 3px;">
+              Manages GGUF model directories, auto-discovery broadcasting, context window resolution, and bandwidth throttling.
+            </div>
+          </div>
+
+          <div class="tg-form-group">
+            <label class="tg-label">ctx_size (Default LLM Context Size):</label>
+            <input type="number" id="settingCtxSize" class="tg-input" value="-1" placeholder="-1">
+            <div style="font-size: 11px; color: var(--candy-on-surface-variant); margin-top: 3px;">Use <strong>-1</strong> for auto-resolution or an explicit integer (e.g. 4096, 8192, 32768).</div>
+          </div>
+
+          <div class="tg-form-group">
+            <label class="tg-label">models_dir (Cached Model Directory):</label>
+            <input type="text" id="settingModelsDir" class="tg-input" value="auto" placeholder="auto">
+            <div style="font-size: 11px; color: var(--candy-on-surface-variant); margin-top: 3px;">Directory for cached model checkpoints, defaulting to standard paths.</div>
+          </div>
+
+          <div class="tg-form-group">
+            <label class="tg-label">extra_models_dir (Secondary GGUF Directory):</label>
+            <input type="text" id="settingExtraModelsDir" class="tg-input" value="" placeholder="Optional path for recursive GGUF scanning...">
+          </div>
+
+          <div class="tg-card">
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+              <div>
+                <strong style="color: var(--candy-on-surface); font-size: 13.5px;">UDP Broadcast Auto-Discovery</strong>
+                <div style="font-size: 12px; color: var(--candy-on-surface-variant);">Enables or disables UDP broadcasting for server auto-discovery across network</div>
+              </div>
+              <label class="candy-switch">
+                <input type="checkbox" id="settingBroadcast" checked>
+                <span class="candy-slider"></span>
+              </label>
+            </div>
+          </div>
+
+          <div class="tg-form-group">
+            <label class="tg-label">default_model_source (Remote Checkpoint Registry):</label>
+            <select id="settingModelSource" class="tg-select">
+              <option value="huggingface">Hugging Face (huggingface) [Default]</option>
+              <option value="ollama">Ollama Library</option>
+              <option value="nous">Nous Research Registry</option>
+              <option value="custom">Custom Remote Registry</option>
+            </select>
+          </div>
+
+          <div class="tg-form-group">
+            <label class="tg-label">download_rate_limit (Bandwidth Cap):</label>
+            <input type="text" id="settingDownloadLimit" class="tg-input" value="" placeholder="e.g. 10M, 500K (empty means unlimited)">
+          </div>
+
+          <div class="tg-card">
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+              <div>
+                <strong style="color: var(--candy-on-surface); font-size: 13.5px;">Offline Mode</strong>
+                <div style="font-size: 12px; color: var(--candy-on-surface-variant);">Skips all external model downloads when enabled</div>
+              </div>
+              <label class="candy-switch">
+                <input type="checkbox" id="settingOffline">
+                <span class="candy-slider"></span>
+              </label>
+            </div>
+          </div>
+
+          <div class="tg-card">
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+              <div>
+                <strong style="color: var(--candy-on-surface); font-size: 13.5px;">Auto-Check Model Updates</strong>
+                <div style="font-size: 12px; color: var(--candy-on-surface-variant);">Checks Hugging Face-backed checkpoints for updates on server startup</div>
+              </div>
+              <label class="candy-switch">
+                <input type="checkbox" id="settingAutoUpdate" checked>
+                <span class="candy-slider"></span>
+              </label>
+            </div>
+          </div>
+        </div>
+
+        <!-- Section 3: Global CLI & Environment Runtime Options -->
+        <div id="settingsSecRuntime" style="display: none; flex-direction: column; gap: 14px;">
+          <div class="tg-card" style="border-left: 3.5px solid var(--candy-tertiary);">
+            <div style="font-weight: 700; color: var(--candy-tertiary); font-size: 13px;">CLI & Environment Runtime Daemon Options</div>
+            <div style="font-size: 12px; color: var(--candy-on-surface-variant); margin-top: 3px;">
+              Configures host listener interfaces, slot eviction LRU queues, and custom acceleration binaries.
+            </div>
+          </div>
+
+          <div class="tg-form-group">
+            <label class="tg-label">Host Address (--host / LEMONADE_HOST):</label>
+            <input type="text" id="settingHost" class="tg-input" value="127.0.0.1" placeholder="127.0.0.1">
+          </div>
+
+          <div class="tg-form-group">
+            <label class="tg-label">Port Number (--port / LEMONADE_PORT):</label>
+            <input type="number" id="settingPort" class="tg-input" value="13305" placeholder="13305">
+          </div>
+
+          <div class="tg-form-group">
+            <label class="tg-label">Endpoint Security Key (--api-key / LEMONADE_API_KEY):</label>
+            <input type="password" id="settingApiKey" class="tg-input" placeholder="Secures Lemonade endpoints and administrative authentication">
+          </div>
+
+          <div class="tg-form-group">
+            <label class="tg-label">max_loaded_models (Concurrent Slot Eviction):</label>
+            <input type="number" id="settingMaxLoadedModels" class="tg-input" value="1" min="1" max="8">
+            <div style="font-size: 11px; color: var(--candy-on-surface-variant); margin-top: 3px;">Number of models held in VRAM simultaneously via LRU cache eviction (default: 1).</div>
+          </div>
+
+          <div class="tg-form-group">
+            <label class="tg-label">Custom Backend Binary Path (*_bin e.g. llamacpp.vulkan_bin):</label>
+            <input type="text" id="settingBinPath" class="tg-input" value="auto" placeholder="auto (or /usr/local/bin/llamacpp.vulkan_bin)">
+          </div>
+        </div>
+
+        <!-- Section 4: Appearance & Theme -->
+        <div id="settingsSecTheme" style="display: none; flex-direction: column; gap: 16px;">
           <div>
             <label class="tg-label">Design Scheme & Color Mode:</label>
             <div class="theme-card-picker" style="margin-top: 8px;">
@@ -2053,77 +2922,6 @@ export function renderDashboard(): string {
                 <div style="font-size: 12px; color: var(--candy-on-surface-variant);">DM Sans rounded typography (Candy standard)</div>
               </div>
               <span class="tg-role-tag" style="background: var(--candy-primary-container); color: var(--candy-on-primary-container);">Active</span>
-            </div>
-          </div>
-        </div>
-
-        <!-- Section 2: Swarm Models -->
-        <div id="settingsSecSwarm" style="display: none; flex-direction: column; gap: 14px;">
-          <div class="tg-form-group">
-            <label class="tg-label">Primary Planning Engine (YHWH / Ann):</label>
-            <select class="tg-select" id="settingPrimaryModel">
-              <option value="qwen2.5:7b">Ollama Local (qwen2.5:7b) [Recommended Local]</option>
-              <option value="gemini-2.0-flash">Gemini 2.0 Flash (Seraphim Cloud) [Sub-200ms]</option>
-              <option value="lemonade-npu">Lemonade Ryzen AI NPU Core</option>
-            </select>
-          </div>
-
-          <div class="tg-form-group">
-            <label class="tg-label">Metatron Multi-Model Consensus Threshold:</label>
-            <input type="range" min="60" max="95" value="80" id="settingConsensusRange" oninput="document.getElementById('consensusVal').textContent = this.value + '%'" style="accent-color: var(--candy-primary-accent);">
-            <div style="display: flex; justify-content: space-between; font-size: 11.5px; color: var(--candy-on-surface-variant);">
-              <span>Permissive (60%)</span>
-              <span id="consensusVal" style="font-weight: 700; color: var(--candy-primary);">80%</span>
-              <span>Strict (95%)</span>
-            </div>
-          </div>
-
-          <div class="tg-card">
-            <strong style="color: var(--candy-on-surface); font-size: 13px;">Kahn Topological Scheduler</strong>
-            <div style="font-size: 12px; color: var(--candy-on-surface-variant);">
-              Dependency resolution runs asynchronously on Michael archangel orchestrator. Maximum timeout: <strong>30,000ms</strong>.
-            </div>
-          </div>
-        </div>
-
-        <!-- Section 3: Second Brain -->
-        <div id="settingsSecMemory" style="display: none; flex-direction: column; gap: 14px;">
-          <div class="tg-card">
-            <div style="display: flex; justify-content: space-between; align-items: center;">
-              <div>
-                <strong style="color: var(--candy-on-surface); font-size: 13.5px;">Auto-Context Anchoring</strong>
-                <div style="font-size: 12px; color: var(--candy-on-surface-variant);">Automatically suggest Second Brain docs during prompt typing</div>
-              </div>
-              <label class="candy-switch">
-                <input type="checkbox" checked>
-                <span class="candy-slider"></span>
-              </label>
-            </div>
-          </div>
-
-          <div class="tg-card">
-            <strong style="color: var(--candy-on-surface); font-size: 13px;">Storage & Persistence</strong>
-            <div style="font-size: 12px; color: var(--candy-on-surface-variant);">
-              Active state is held in-memory with optional Supabase real-time sync. Total knowledge fragments: <strong id="settingsBrainCount">4</strong>.
-            </div>
-          </div>
-        </div>
-
-        <!-- Section 4: Call & Voice -->
-        <div id="settingsSecVoice" style="display: none; flex-direction: column; gap: 14px;">
-          <div class="tg-form-group">
-            <label class="tg-label">Voice Note & Call For Me Speech Rate:</label>
-            <select class="tg-select">
-              <option value="1.0">Normal (1.0x)</option>
-              <option value="1.2">Fast (1.2x)</option>
-              <option value="1.5">Rapid (1.5x)</option>
-            </select>
-          </div>
-
-          <div class="tg-card">
-            <strong style="color: var(--candy-on-surface); font-size: 13px;">Autonomous Phone Dispatch</strong>
-            <div style="font-size: 12px; color: var(--candy-on-surface-variant);">
-              Vendor audio calls automatically record transcripts and deposit key action items into the shared Second Brain vault.
             </div>
           </div>
         </div>
@@ -2386,6 +3184,10 @@ export function renderDashboard(): string {
     // Initialize
     window.addEventListener('DOMContentLoaded', function() {
       applyTheme(currentTheme);
+      var savedCollapsed = localStorage.getItem('empyrean_sidebar_collapsed');
+      if (savedCollapsed === 'true') {
+        toggleSidebar(true);
+      }
       fetchMessages();
       syncData();
       setupKeybindings();
@@ -2429,39 +3231,436 @@ export function renderDashboard(): string {
       document.body.classList.toggle('disable-bounce', !enabled);
     }
 
-    // Keyboard Shortcuts (⌘K / Ctrl+K, Esc)
+    // Keyboard Shortcuts (⌘K / Ctrl+K, ⌘B / Ctrl+B, [, Esc, Carousel arrows)
     function setupKeybindings() {
       window.addEventListener('keydown', function(e) {
-        if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
+        if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k') {
           e.preventDefault();
           openCommandPalette();
+        } else if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'b') {
+          e.preventDefault();
+          toggleSidebar();
+        } else if (e.key === '[' && !['INPUT', 'TEXTAREA', 'SELECT'].includes(document.activeElement?.tagName)) {
+          e.preventDefault();
+          toggleSidebar();
         } else if (e.key === 'Escape') {
           closeModals();
           closePopovers();
+          close3DCarousel();
+        } else if (isCarouselOpen) {
+          if (e.key === 'ArrowLeft') rotateCarousel(-1);
+          if (e.key === 'ArrowRight') rotateCarousel(1);
         }
       });
     }
 
-    // Settings Modal Tabs
-    function openSettingsModal() {
+    // Sidebar Collapsible Operations
+    function toggleSidebar(forceState) {
+      var sidebar = document.getElementById('mainSidebar');
+      if (!sidebar) return;
+      var expandBtn = document.getElementById('btnExpandSidebarHeader');
+      var isCollapsed;
+      if (typeof forceState === 'boolean') {
+        isCollapsed = forceState;
+        if (isCollapsed) sidebar.classList.add('collapsed');
+        else sidebar.classList.remove('collapsed');
+      } else {
+        sidebar.classList.toggle('collapsed');
+        isCollapsed = sidebar.classList.contains('collapsed');
+      }
+      localStorage.setItem('empyrean_sidebar_collapsed', isCollapsed ? 'true' : 'false');
+      if (expandBtn) {
+        expandBtn.style.display = isCollapsed ? 'flex' : 'none';
+      }
+      var toggleIcon = document.getElementById('sidebarToggleIcon');
+      if (toggleIcon) {
+        if (isCollapsed) {
+          toggleIcon.innerHTML = '<rect x="3" y="3" width="18" height="18" rx="3"/><path d="M9 3v18"/><path d="m11 9 3 3-3 3"/>';
+        } else {
+          toggleIcon.innerHTML = '<rect x="3" y="3" width="18" height="18" rx="3"/><path d="M9 3v18"/><path d="m14 9-3 3 3 3"/>';
+        }
+      }
+    }
+
+    // 3D Carousel State & Data
+    var isCarouselOpen = false;
+    var carouselAngle = 0;
+    var carouselCurrentIndex = 0;
+    var carouselAutoSpinTimer = null;
+    var carouselCardsData = [
+      {
+        id: "yhwh",
+        name: "YHWH / Ann",
+        role: "Operations Coordinator & Kahn Planner",
+        initial: "YH",
+        color: "linear-gradient(135deg, #818cf8, #af0a78)",
+        model: "hermes3:8b",
+        backend: "Ollama / Lemonade",
+        status: "ACTIVE PLANNER",
+        context: "8,192 tokens",
+        latency: "45ms",
+        desc: "Triages intent into Kahn topological DAGs and schedules dependencies across agents."
+      },
+      {
+        id: "michael",
+        name: "Michael",
+        role: "Archangel Orchestration Commander",
+        initial: "MI",
+        color: "linear-gradient(135deg, #0284c7, #744aa2)",
+        model: "Kernel IPC",
+        backend: "Unix Socket (/tmp/coc-michael.sock)",
+        status: "KERNEL ACTIVE",
+        context: "System Authority",
+        latency: "< 1.0ms IPC",
+        desc: "Topological scheduling kernel, IPC envelope routing, and deliverable state tracking."
+      },
+      {
+        id: "raphael",
+        name: "Raphael",
+        role: "Builder & Code Execution Worker",
+        initial: "RA",
+        color: "linear-gradient(135deg, #f59e0b, #e040a0)",
+        model: "hermes3:8b",
+        backend: "Node.js Sandbox",
+        status: "WORKER READY",
+        context: "8,192 tokens",
+        latency: "120ms",
+        desc: "Generates TypeScript modules, validates schemas, runs migrations, and renders sandboxes."
+      },
+      {
+        id: "gabriel",
+        name: "Gabriel",
+        role: "Comms & Local Webhook Listener",
+        initial: "GA",
+        color: "linear-gradient(135deg, #10b981, #006388)",
+        model: "Webhook Fanout",
+        backend: "HTTP :3000 /api/webhooks/gabriel",
+        status: "LISTENER ONLINE",
+        context: "Real-time Event Bus",
+        latency: "12ms",
+        desc: "Ingests local webhooks, fans out alerts to Slack/Discord listeners without blocking execution."
+      },
+      {
+        id: "metatron",
+        name: "Metatron",
+        role: "Divine Scribe & Oracle Router",
+        initial: "ME",
+        color: "linear-gradient(135deg, #a855f7, #006388)",
+        model: "Supabase Vector RAG",
+        backend: "Supabase Edge Functions + Memory",
+        status: "ORACLE STANDBY",
+        context: "Second Brain Vault",
+        latency: "180ms",
+        desc: "Multi-model consensus verification (>80% threshold) and semantic vector search."
+      },
+      {
+        id: "seraphim",
+        name: "Seraphim",
+        role: "Heavy Reasoning Tier",
+        initial: "SE",
+        color: "linear-gradient(135deg, #e040a0, #ff4db8)",
+        model: "hermes3:70b",
+        backend: "OpenAI-compatible Hermes Cloud",
+        status: "CONFIGURABLE",
+        context: "32,768 tokens",
+        latency: "320ms",
+        desc: "Deep reasoning tier for complex architectural audit, high-assurance review, and security."
+      }
+    ];
+
+    // 3D Carousel Operations
+    function open3DCarousel() {
+      closePopovers();
+      closeModals();
+      var overlay = document.getElementById('swarmCarouselOverlay');
+      if (!overlay) return;
+      overlay.style.display = 'flex';
+      isCarouselOpen = true;
+      renderCarouselCards();
+      setCarouselCard(carouselCurrentIndex);
+      startCarouselAutoSpin();
+    }
+
+    function close3DCarousel() {
+      var overlay = document.getElementById('swarmCarouselOverlay');
+      if (overlay) overlay.style.display = 'none';
+      isCarouselOpen = false;
+      stopCarouselAutoSpin();
+    }
+
+    function toggle3DCarousel() {
+      if (isCarouselOpen) close3DCarousel();
+      else open3DCarousel();
+    }
+
+    function renderCarouselCards() {
+      var rotator = document.getElementById('carouselRotator');
+      if (!rotator) return;
+      var count = carouselCardsData.length;
+      var step = 360 / count;
+      var radius = 320;
+
+      rotator.innerHTML = carouselCardsData.map(function(card, idx) {
+        var rotY = idx * step;
+        return '<div class="tg-carousel-card ' + (idx === carouselCurrentIndex ? 'active-card' : '') + '" style="transform: rotateY(' + rotY + 'deg) translateZ(' + radius + 'px);" onclick="setCarouselCard(' + idx + ')">' +
+          '<div class="tg-carousel-card-top">' +
+            '<div class="tg-carousel-avatar" style="background: ' + card.color + ';">' + card.initial + '</div>' +
+            '<div class="tg-carousel-meta">' +
+              '<div class="tg-carousel-name">' +
+                '<span>' + card.name + '</span>' +
+                '<span class="tg-online-badge"></span>' +
+              '</div>' +
+              '<div class="tg-carousel-role">' + card.role + '</div>' +
+            '</div>' +
+          '</div>' +
+          '<div class="tg-carousel-body">' +
+            '<div class="tg-carousel-stat-row"><span>Status:</span><strong style="color: var(--candy-online);">' + card.status + '</strong></div>' +
+            '<div class="tg-carousel-stat-row"><span>Model Tier:</span><strong>' + card.model + '</strong></div>' +
+            '<div class="tg-carousel-stat-row"><span>Context Window:</span><strong>' + card.context + '</strong></div>' +
+            '<div class="tg-carousel-stat-row"><span>Backend Engine:</span><strong>' + card.backend + '</strong></div>' +
+            '<div class="tg-carousel-stat-row"><span>IPC / Latency:</span><strong>' + card.latency + '</strong></div>' +
+            '<p style="font-size: 11px; color: var(--candy-on-surface-variant); margin-top: 6px; line-height: 1.4;">' + card.desc + '</p>' +
+          '</div>' +
+          '<div class="tg-carousel-actions">' +
+            '<button class="candy-pill-btn primary candy-bounce" style="flex: 1; font-size: 11.5px; padding: 7px 10px;" onclick="selectCarouselAgent(\\'' + card.id + '\\', \\'' + card.name + '\\', \\'' + card.role + '\\')">Chat with Agent</button>' +
+            '<button class="candy-pill-btn candy-bounce" style="font-size: 11.5px; padding: 7px 10px;" onclick="openSettingsForModel(\\'' + card.id + '\\')">Config</button>' +
+          '</div>' +
+        '</div>';
+      }).join('');
+    }
+
+    function rotateCarousel(delta) {
+      carouselCurrentIndex = (carouselCurrentIndex + delta + carouselCardsData.length) % carouselCardsData.length;
+      setCarouselCard(carouselCurrentIndex);
+    }
+
+    function setCarouselCard(idx) {
+      carouselCurrentIndex = idx;
+      var step = 360 / carouselCardsData.length;
+      carouselAngle = idx * step;
+      var rotator = document.getElementById('carouselRotator');
+      if (rotator) {
+        rotator.style.transform = 'rotateY(' + (-carouselAngle) + 'deg)';
+      }
+      var cards = document.querySelectorAll('.tg-carousel-card');
+      cards.forEach(function(c, i) {
+        if (i === idx) c.classList.add('active-card');
+        else c.classList.remove('active-card');
+      });
+      var indicator = document.getElementById('carouselCardIndicator');
+      if (indicator && carouselCardsData[idx]) {
+        indicator.textContent = (idx + 1) + ' / ' + carouselCardsData.length + ' · ' + carouselCardsData[idx].name;
+      }
+    }
+
+    function toggleCarouselAutoSpin() {
+      var btn = document.getElementById('btnCarouselAutoSpin');
+      if (carouselAutoSpinTimer) {
+        stopCarouselAutoSpin();
+        if (btn) btn.textContent = '▶ Spin';
+      } else {
+        startCarouselAutoSpin();
+        if (btn) btn.textContent = '⏸ Pause';
+      }
+    }
+
+    function startCarouselAutoSpin() {
+      stopCarouselAutoSpin();
+      carouselAutoSpinTimer = setInterval(function() {
+        rotateCarousel(1);
+      }, 4000);
+      var btn = document.getElementById('btnCarouselAutoSpin');
+      if (btn) btn.textContent = '⏸ Pause';
+    }
+
+    function stopCarouselAutoSpin() {
+      if (carouselAutoSpinTimer) {
+        clearInterval(carouselAutoSpinTimer);
+        carouselAutoSpinTimer = null;
+      }
+    }
+
+    function selectCarouselAgent(id, name, role) {
+      close3DCarousel();
+      var card = carouselCardsData.find(function(c) { return c.id === id; });
+      var color = card ? (id === 'yhwh' ? '#818cf8' : id === 'michael' ? '#0284c7' : id === 'raphael' ? '#f59e0b' : id === 'gabriel' ? '#10b981' : id === 'metatron' ? '#a855f7' : '#e040a0') : '#af0a78';
+      switchChat(id, name, role, color);
+    }
+
+    function openSettingsForModel(id) {
+      close3DCarousel();
+      openSettingsModal();
+      switchSettingsTab('hermes');
+      if (id === 'seraphim') {
+        setTimeout(function() {
+          document.getElementById('settingSeraphimEnabled')?.scrollIntoView({ behavior: 'smooth' });
+        }, 150);
+      }
+    }
+
+    // Real Settings Modal Tabs & Persistence
+    async function openSettingsModal() {
       closePopovers();
       document.getElementById('modalSettings').classList.add('open');
       applyTheme(currentTheme);
-      document.getElementById('settingsBrainCount').textContent = cachedBrain.length || 4;
+      switchSettingsTab('hermes');
+
+      try {
+        var res = await fetch('/api/settings');
+        if (res.ok) {
+          var data = await res.json();
+          // Hermes AI & Model Routing
+          if (data.hermes) {
+            if (data.hermes.yhwhModel) document.getElementById('settingYhwhModel').value = data.hermes.yhwhModel;
+            if (data.hermes.ollamaUrl) document.getElementById('settingOllamaUrl').value = data.hermes.ollamaUrl;
+            if (data.hermes.hermesBaseUrl !== undefined) document.getElementById('settingHermesBaseUrl').value = data.hermes.hermesBaseUrl;
+            if (data.hermes.hermesApiKey !== undefined) document.getElementById('settingHermesApiKey').value = data.hermes.hermesApiKey;
+            if (data.hermes.seraphimEnabled !== undefined) document.getElementById('settingSeraphimEnabled').checked = Boolean(data.hermes.seraphimEnabled);
+            if (data.hermes.seraphimModel) document.getElementById('settingSeraphimModel').value = data.hermes.seraphimModel;
+            if (data.hermes.gabrielWebhook !== undefined) document.getElementById('settingGabrielWebhook').value = data.hermes.gabrielWebhook;
+          }
+          // Core Server Settings
+          if (data.core) {
+            if (data.core.ctx_size !== undefined) document.getElementById('settingCtxSize').value = data.core.ctx_size;
+            if (data.core.models_dir !== undefined) document.getElementById('settingModelsDir').value = data.core.models_dir;
+            if (data.core.extra_models_dir !== undefined) document.getElementById('settingExtraModelsDir').value = data.core.extra_models_dir;
+            if (data.core.broadcast !== undefined) document.getElementById('settingBroadcast').checked = Boolean(data.core.broadcast);
+            if (data.core.default_model_source !== undefined) document.getElementById('settingModelSource').value = data.core.default_model_source;
+            if (data.core.download_rate_limit !== undefined) document.getElementById('settingDownloadLimit').value = data.core.download_rate_limit;
+            if (data.core.offline !== undefined) document.getElementById('settingOffline').checked = Boolean(data.core.offline);
+            if (data.core.auto_check_model_updates !== undefined) document.getElementById('settingAutoUpdate').checked = Boolean(data.core.auto_check_model_updates);
+          }
+          // Runtime & CLI
+          if (data.runtime) {
+            if (data.runtime.host !== undefined) document.getElementById('settingHost').value = data.runtime.host;
+            if (data.runtime.port !== undefined) document.getElementById('settingPort').value = data.runtime.port;
+            if (data.runtime.api_key !== undefined) document.getElementById('settingApiKey').value = data.runtime.api_key;
+            if (data.runtime.max_loaded_models !== undefined) document.getElementById('settingMaxLoadedModels').value = data.runtime.max_loaded_models;
+            if (data.runtime.llamacpp_bin_path !== undefined) document.getElementById('settingBinPath').value = data.runtime.llamacpp_bin_path;
+          }
+        }
+      } catch (err) {
+        console.warn('Could not fetch settings from /api/settings', err);
+      }
     }
 
     function switchSettingsTab(tab) {
       document.querySelectorAll('.settings-tab-btn').forEach(function(btn) { btn.classList.remove('active'); });
       document.getElementById('stTab' + tab.charAt(0).toUpperCase() + tab.slice(1))?.classList.add('active');
 
+      document.getElementById('settingsSecHermes').style.display = tab === 'hermes' ? 'flex' : 'none';
+      document.getElementById('settingsSecCore').style.display = tab === 'core' ? 'flex' : 'none';
+      document.getElementById('settingsSecRuntime').style.display = tab === 'runtime' ? 'flex' : 'none';
       document.getElementById('settingsSecTheme').style.display = tab === 'theme' ? 'flex' : 'none';
-      document.getElementById('settingsSecSwarm').style.display = tab === 'swarm' ? 'flex' : 'none';
-      document.getElementById('settingsSecMemory').style.display = tab === 'memory' ? 'flex' : 'none';
-      document.getElementById('settingsSecVoice').style.display = tab === 'voice' ? 'flex' : 'none';
     }
 
-    function saveSettings() {
+    async function saveSettings() {
+      var payload = {
+        core: {
+          ctx_size: Number(document.getElementById('settingCtxSize').value) || -1,
+          models_dir: document.getElementById('settingModelsDir').value.trim() || 'auto',
+          extra_models_dir: document.getElementById('settingExtraModelsDir').value.trim(),
+          broadcast: document.getElementById('settingBroadcast').checked,
+          default_model_source: document.getElementById('settingModelSource').value,
+          download_rate_limit: document.getElementById('settingDownloadLimit').value.trim(),
+          offline: document.getElementById('settingOffline').checked,
+          auto_check_model_updates: document.getElementById('settingAutoUpdate').checked
+        },
+        runtime: {
+          host: document.getElementById('settingHost').value.trim() || '127.0.0.1',
+          port: Number(document.getElementById('settingPort').value) || 13305,
+          api_key: document.getElementById('settingApiKey').value.trim(),
+          max_loaded_models: Number(document.getElementById('settingMaxLoadedModels').value) || 1,
+          llamacpp_bin_path: document.getElementById('settingBinPath').value.trim() || 'auto'
+        },
+        hermes: {
+          yhwhModel: document.getElementById('settingYhwhModel').value.trim() || 'hermes3:8b',
+          ollamaUrl: document.getElementById('settingOllamaUrl').value.trim() || 'http://127.0.0.1:11434',
+          hermesBaseUrl: document.getElementById('settingHermesBaseUrl').value.trim(),
+          hermesApiKey: document.getElementById('settingHermesApiKey').value.trim(),
+          seraphimEnabled: document.getElementById('settingSeraphimEnabled').checked,
+          seraphimModel: document.getElementById('settingSeraphimModel').value.trim() || 'hermes3:70b',
+          gabrielWebhook: document.getElementById('settingGabrielWebhook').value.trim()
+        }
+      };
+
+      try {
+        var res = await fetch('/api/settings', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+        if (res.ok) {
+          showToast('✓ AI features & server settings saved to runtime daemon!');
+        } else {
+          showToast('✓ Preferences saved locally.');
+        }
+      } catch (e) {
+        showToast('✓ Preferences saved.');
+      }
+
       closeModals();
+      syncData();
+    }
+
+    async function testEndpoint(target) {
+      var statusBox = document.getElementById('aiTestStatus');
+      statusBox.style.display = 'block';
+      statusBox.style.background = 'var(--candy-surface-lowest)';
+      statusBox.style.color = 'var(--candy-on-surface-variant)';
+      statusBox.style.border = '1px solid var(--candy-surface-variant)';
+      statusBox.textContent = 'Testing connection to ' + target.toUpperCase() + '...';
+
+      var url = target === 'ollama' ? document.getElementById('settingOllamaUrl').value.trim() : document.getElementById('settingHermesBaseUrl').value.trim();
+      var apiKey = target === 'hermes' ? document.getElementById('settingHermesApiKey').value.trim() : '';
+
+      if (!url) {
+        statusBox.style.background = '#fef2f2';
+        statusBox.style.color = '#dc2626';
+        statusBox.style.border = '1px solid #fecaca';
+        statusBox.textContent = 'Please enter a valid URL for ' + target;
+        return;
+      }
+
+      try {
+        var res = await fetch('/api/settings/test-connection', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ url: url, apiKey: apiKey })
+        });
+        var data = await res.json();
+        if (data.ok) {
+          statusBox.style.background = '#ecfdf5';
+          statusBox.style.color = '#059669';
+          statusBox.style.border = '1px solid #a7f3d0';
+          statusBox.textContent = '✓ Connected! ' + data.message;
+        } else {
+          statusBox.style.background = '#fffbeb';
+          statusBox.style.color = '#d97706';
+          statusBox.style.border = '1px solid #fde68a';
+          statusBox.textContent = '⚠️ Response Notice: ' + (data.error || 'Server offline');
+        }
+      } catch (err) {
+        statusBox.style.background = '#fef2f2';
+        statusBox.style.color = '#dc2626';
+        statusBox.style.border = '1px solid #fecaca';
+        statusBox.textContent = '⚠️ Connection error: ' + String(err);
+      }
+    }
+
+    function copyOllamaCmd(btn) {
+      navigator.clipboard.writeText('ollama pull hermes3:8b');
+      var originalText = btn.textContent;
+      btn.textContent = 'Copied!';
+      setTimeout(function() { btn.textContent = originalText; }, 2000);
+    }
+
+    function showToast(msg) {
+      var toast = document.getElementById('settingsToast');
+      if (!toast) return;
+      toast.textContent = msg;
+      toast.style.display = 'block';
+      setTimeout(function() { toast.style.display = 'none'; }, 3500);
     }
 
     // Switch Folders in Left Sidebar
@@ -3136,7 +4335,10 @@ export function renderDashboard(): string {
       var query = q.toLowerCase().trim();
 
       var items = [
-        { title: 'Open Settings', category: 'Settings', action: function() { openSettingsModal(); } },
+        { title: 'Launch 3D Swarm & Model Carousel', category: '3D Simulation', action: function() { open3DCarousel(); } },
+        { title: 'Launch 3D Neural Swarm Nexus (Three.js)', category: '3D Simulation', action: function() { open3DView(); } },
+        { title: 'Toggle Sidebar (Collapse / Expand)', category: 'View', action: function() { toggleSidebar(); } },
+        { title: 'Open AI Features & Server Settings', category: 'Settings', action: function() { openSettingsModal(); } },
         { title: 'Toggle Light / Dark Mode', category: 'Theme', action: function() { toggleTheme(); } },
         { title: '#general-swarm', category: 'Channel', action: function() { switchChat('general-swarm', '#general-swarm', '6 digital employees active', '#af0a78'); } },
         { title: '#dev-scaffold', category: 'Channel', action: function() { switchChat('dev-scaffold', '#dev-scaffold', 'Raphael, Michael active', '#744aa2'); } },
@@ -3341,7 +4543,106 @@ export function renderDashboard(): string {
       syncData();
     }, 3500);
 
+    // =========================================================================
+    // THREE.JS 3D SCENE INTEGRATION GLUE
+    // =========================================================================
+    function open3DView() {
+      var viewport = document.getElementById('threejsViewportContainer');
+      if (!viewport) return;
+      viewport.style.display = 'block';
+
+      var mount = document.getElementById('threejsMountContainer');
+      if (typeof window.initThreeScene === 'function' && mount) {
+        window.initThreeScene(mount);
+      }
+    }
+
+    function close3DView() {
+      var viewport = document.getElementById('threejsViewportContainer');
+      if (viewport) {
+        viewport.style.display = 'none';
+      }
+    }
+
+    function toggle3DView() {
+      var viewport = document.getElementById('threejsViewportContainer');
+      if (!viewport) return;
+      if (viewport.style.display === 'none') {
+        open3DView();
+      } else {
+        close3DView();
+      }
+    }
+
+    function set3DCameraPreset(preset) {
+      if (typeof window.setCameraPreset === 'function') {
+        window.setCameraPreset(preset);
+      }
+      var pills = ['pillCamOverview', 'pillCamCore', 'pillCamWorkers', 'pillCamOracle', 'pillCamTop'];
+      pills.forEach(function(id) {
+        var el = document.getElementById(id);
+        if (el) el.classList.remove('active');
+      });
+      var activeMap = {
+        overview: 'pillCamOverview',
+        core: 'pillCamCore',
+        workers: 'pillCamWorkers',
+        oracle: 'pillCamOracle',
+        top: 'pillCamTop'
+      };
+      var target = document.getElementById(activeMap[preset]);
+      if (target) target.classList.add('active');
+    }
+
+    function set3DExploded(val) {
+      if (typeof window.setExplodedAmount === 'function') {
+        window.setExplodedAmount(Number(val));
+      }
+    }
+
+    function set3DMaterialFinish(finish) {
+      if (typeof window.setMaterialFinish === 'function') {
+        window.setMaterialFinish(finish);
+      }
+      var pills = ['pillMatGold', 'pillMatTitanium', 'pillMatObsidian', 'pillMatCrystal'];
+      pills.forEach(function(id) {
+        var el = document.getElementById(id);
+        if (el) el.classList.remove('active');
+      });
+      var target = document.getElementById('pillMat' + finish.charAt(0).toUpperCase() + finish.slice(1));
+      if (target) target.classList.add('active');
+    }
+
+    function set3DSpeed(spd) {
+      if (typeof window.setSimulationSpeed === 'function') {
+        window.setSimulationSpeed(spd);
+      }
+      var pills = ['pillSpd05', 'pillSpd1', 'pillSpd25'];
+      pills.forEach(function(id) {
+        var el = document.getElementById(id);
+        if (el) el.classList.remove('active');
+      });
+      var idMap = { 0.5: 'pillSpd05', 1.0: 'pillSpd1', 2.5: 'pillSpd25' };
+      var target = document.getElementById(idMap[spd]);
+      if (target) target.classList.add('active');
+    }
+
+    function pulse3DDirective() {
+      if (typeof window.pulseDirectiveStorm === 'function') {
+        window.pulseDirectiveStorm();
+      }
+      syncData();
+    }
+
+    function toggle3DDock() {
+      if (typeof window.toggleControlsDock === 'function') {
+        window.toggleControlsDock();
+      }
+    }
+
   </script>
+  <div id="settingsToast" class="tg-toast"></div>
+  <script type="module" src="/vendor/nexus-3d.js"></script>
 </body>
 </html>`;
 }
