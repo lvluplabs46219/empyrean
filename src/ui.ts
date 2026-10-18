@@ -6,8 +6,10 @@ export function renderDashboard(): string {
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Empyrean GenTeam — Autonomous Multi-Agent Workspace</title>
-  <meta name="description" content="GenTeam multi-agent collaborative operations environment combined with Telegram UX, Candy Playful & Vibrant design system, and full Light/Dark mode.">
+  <title>Empyrean Multi-Agent Orchestrator</title>
+  <meta name="description" content="Multi-agent orchestration kernel featuring YHWH (planning), Michael (orchestrator), Gabriel (messenger), Raphael (worker), and Metatron/Seraphim (gateway & reasoning).">
+  <meta property="og:title" content="Empyrean Multi-Agent Orchestrator">
+  <meta property="og:description" content="Multi-agent orchestration kernel featuring YHWH (planning), Michael (orchestrator), Gabriel (messenger), Raphael (worker), and Metatron/Seraphim (gateway & reasoning).">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400..800;1,9..40,400..800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">

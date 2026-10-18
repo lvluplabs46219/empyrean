@@ -7,6 +7,14 @@ import { ChatMessage } from "./state/store.js";
 import { renderDashboard } from "./ui.js";
 
 async function main() {
+  if (typeof process.loadEnvFile === "function") {
+    try {
+      process.loadEnvFile();
+    } catch {
+      // Optional .env
+    }
+  }
+
   const michael = new Michael();
 
   // 1. Unix Domain Socket server (backwards-compatible with CLI tools)
