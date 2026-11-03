@@ -3,14 +3,14 @@
 import { Directive, ExecutionTree, log } from "../protocol/types.js";
 
 const ollamaUrl = (): string => process.env.OLLAMA_URL ?? "http://127.0.0.1:11434";
-const model = (): string => process.env.YHWH_MODEL ?? "hermes3:8b";
+const model = (): string => process.env.YHWH_MODEL ?? "qwen2.5:7b";
 
-/** Raw completion against local Ollama Hermes, online Hermes, or deterministic reasoning fallback. */
+/** Raw completion against local Ollama, Gemini API, or deterministic reasoning fallback. */
 export async function complete(prompt: string, system?: string): Promise<string> {
-  // 1. Try local Ollama Hermes if configured
+  // 1. Try local Ollama if configured
   try {
     const ctrl = new AbortController();
-    const timer = setTimeout(() => ctrl.abort(), 3000);
+    const timer = setTimeout(() => ctrl.abort(), 2000);
     const res = await fetch(`${ollamaUrl()}/api/generate`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -23,40 +23,30 @@ export async function complete(prompt: string, system?: string): Promise<string>
       if (json.response) return json.response;
     }
   } catch {
-    // Local Ollama offline / unreachable — proceed to online Hermes fallback
+    // Ollama offline / unreachable — proceed to fallback
   }
 
-  // 2. Try online Hermes (OpenRouter / Nous / OpenAI-compatible endpoint)
-  const hermesBase = process.env.HERMES_BASE_URL?.replace(/\/+$/, "");
-  const hermesKey = process.env.HERMES_API_KEY;
-  if (hermesBase) {
+  // 2. Try Gemini API if key is present
+  const geminiKey = process.env.GEMINI_API_KEY;
+  if (geminiKey) {
     try {
-      const ctrl = new AbortController();
-      const timer = setTimeout(() => ctrl.abort(), 8000);
-      const headers: Record<string, string> = { "Content-Type": "application/json" };
-      if (hermesKey) headers["Authorization"] = `Bearer ${hermesKey}`;
-
-      const res = await fetch(`${hermesBase}/chat/completions`, {
-        method: "POST",
-        headers,
-        body: JSON.stringify({
-          model: model(),
-          messages: [
-            ...(system ? [{ role: "system", content: system }] : []),
-            { role: "user", content: prompt },
-          ],
-          temperature: 0.2,
-        }),
-        signal: ctrl.signal,
-      }).finally(() => clearTimeout(timer));
-
+      const res = await fetch(
+        `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${geminiKey}`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            contents: [{ parts: [{ text: (system ? `${system}\n\n` : "") + prompt }] }],
+          }),
+        }
+      );
       if (res.ok) {
         const json = (await res.json()) as any;
-        const text = json.choices?.[0]?.message?.content;
+        const text = json.candidates?.[0]?.content?.parts?.[0]?.text;
         if (text) return text;
       }
     } catch {
-      // Online Hermes endpoint failed — proceed to heuristic reasoning
+      // Gemini API failed — proceed to heuristic reasoning
     }
   }
 
