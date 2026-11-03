@@ -14,8 +14,8 @@ async function main() {
   const udsServer = serve(sock, (env: Envelope) => michael.onEnvelope(env));
   udsServer.on("listening", () => log("info", "michael", "uds_socket_ready", { sock }));
 
-  // 2. HTTP Server for AI Studio Web UI (port 3000)
-  const port = Number(process.env.PORT ?? 3000);
+  // 2. HTTP Server for AI Studio Web UI (port 3001)
+  const port = Number(process.env.PORT ?? 3001);
   const host = "0.0.0.0";
 
   const httpServer = http.createServer(async (req, res) => {

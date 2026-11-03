@@ -1,20 +1,63 @@
-// YHWH — Core Reasoning Engine (local inference via Ollama / Lemonade).
+// YHWH — Core Reasoning Engine (local inference via Lemonade / Ollama).
 // Parses ambiguous intent and outputs structured execution trees.
 import { Directive, ExecutionTree, log } from "../protocol/types.js";
 
+const lemonadeUrl = (): string =>
+  process.env.LEMONADE_URL ?? "http://127.0.0.1:13305/v1";
 const ollamaUrl = (): string => process.env.OLLAMA_URL ?? "http://127.0.0.1:11434";
-const model = (): string => process.env.YHWH_MODEL ?? "qwen2.5:7b";
+const model = (): string =>
+  process.env.YHWH_MODEL ?? process.env.LEMONADE_MODEL ?? "DeepSeek-Qwen3-8B-GGUF";
 
-/** Raw completion against local Ollama, Gemini API, or deterministic reasoning fallback. */
+/** Raw completion against local Lemonade (OpenAI-compatible), Ollama, Gemini API, or deterministic fallback. */
 export async function complete(prompt: string, system?: string): Promise<string> {
-  // 1. Try local Ollama if configured
+  // 1. Prefer Lemonade Server (OpenAI-compatible API)
+  try {
+    const ctrl = new AbortController();
+    const timer = setTimeout(() => ctrl.abort(), 30000); // longer timeout for local inference
+    const messages: { role: string; content: string }[] = [];
+    if (system) messages.push({ role: "system", content: system });
+    messages.push({ role: "user", content: prompt });
+
+    const res = await fetch(`${lemonadeUrl()}/chat/completions`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: "Bearer lemonade",
+      },
+      body: JSON.stringify({
+        model: model(),
+        messages,
+        temperature: 0.2,
+        max_tokens: 2048,
+        stream: false,
+      }),
+      signal: ctrl.signal,
+    }).finally(() => clearTimeout(timer));
+
+    if (res.ok) {
+      const json = (await res.json()) as {
+        choices?: { message?: { content?: string } }[];
+      };
+      const text = json.choices?.[0]?.message?.content;
+      if (text) {
+        log("info", "yhwh", "lemonade_completion", { model: model(), len: text.length });
+        return text;
+      }
+    } else {
+      log("warn", "yhwh", "lemonade_http_error", { status: res.status });
+    }
+  } catch (e) {
+    log("info", "yhwh", "lemonade_unreachable", { error: String(e).slice(0, 120) });
+  }
+
+  // 2. Try local Ollama if configured
   try {
     const ctrl = new AbortController();
     const timer = setTimeout(() => ctrl.abort(), 2000);
     const res = await fetch(`${ollamaUrl()}/api/generate`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ model: model(), prompt, system, stream: false }),
+      body: JSON.stringify({ model: process.env.OLLAMA_MODEL ?? "qwen2.5:7b", prompt, system, stream: false }),
       signal: ctrl.signal,
     }).finally(() => clearTimeout(timer));
 
@@ -26,7 +69,7 @@ export async function complete(prompt: string, system?: string): Promise<string>
     // Ollama offline / unreachable — proceed to fallback
   }
 
-  // 2. Try Gemini API if key is present
+  // 3. Try Gemini API if key is present
   const geminiKey = process.env.GEMINI_API_KEY;
   if (geminiKey) {
     try {
@@ -50,7 +93,7 @@ export async function complete(prompt: string, system?: string): Promise<string>
     }
   }
 
-  // 3. Deterministic heuristic completion
+  // 4. Deterministic heuristic completion
   log("info", "yhwh", "heuristic_completion_fallback", { promptSummary: prompt.slice(0, 60) });
   return JSON.stringify({
     agent: "yhwh",
@@ -79,8 +122,8 @@ function heuristicPlan(directive: Directive): ExecutionTree {
       kind: "file.scaffold",
       dependsOn: [rootId],
       payload: {
-        path: "/tmp/empyrean_generated.ts",
-        content: `// Scaffolded by Raphael worker for directive: "${directive.text}"\nexport const timestamp = "${new Date().toISOString()}";\nexport const status = "ready";\n`,
+        path: "empyrean_generated.ts",
+        content: `// Scaffolded by Raphael worker for directive: "${directive.text.replace(/[\r\n]/g, " ")}"\nexport const timestamp = "${new Date().toISOString()}";\nexport const status = "ready";\n`,
       },
     });
   }
